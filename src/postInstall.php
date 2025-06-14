@@ -12,9 +12,6 @@ $packageDir = __DIR__;
 
 echo "🚀 Installation de packages/epaphrodites...\n";
 
-/**
- * Fonction pour créer un fichier s'il n'existe pas
- */
 function createFileIfNotExists($source, $destination, $filename) {
     if (!file_exists($destination)) {
         if (file_exists($source)) {
@@ -172,7 +169,6 @@ if (!file_exists($synchronePhpPath)) {
     echo "ℹ️  Fichier synchrone.php existe déjà, pas de modification\n";
 }
 
-// 3. Créer un fichier .gitignore pour exclure les logs (optionnel)
 $gitignorePath = $rootDir . '/.gitignore';
 $gitignoreContent = "# Logs de synchronisation\nsynchrone.log\n";
 
