@@ -7,23 +7,34 @@
     "license": "MIT",
     "minimum-stability": "dev",
     "authors": [
-        {
-            "name": "EPAPHRODITES",
-            "email": "infos@epaphrodite.org",
-            "homepage": "https://epaphrodite.org",
-            "role": "Lead Developer"
-        },
-        {
-            "name": "Y'srael Aimé N'DRI",
-            "role": "Contributors"
-        }
+      {
+        "name": "EPAPHRODITES",
+        "email": "infos@epaphrodite.org",
+        "homepage": "https://epaphrodite.org",
+        "role": "Lead Developer"
+      },
+      {
+        "name": "Y'srael Aimé N'DRI",
+        "role": "Contributors"
+      }
     ],
     "require": {
-        "php": ">=8.2"
+      "php": ">=8.2"
     },
     "autoload": {
-        "psr-4" : {
-            "Ndri\\" : "src/"
-        }
+      "psr-4": {
+        "Ndri\\": "src/"
+      }
+    },
+    "scripts": {
+      "post-install-cmd": [
+        "php vendor/packages/epaphrodites/src/postInstall.php"
+      ],
+      "post-update-cmd": [
+        "php vendor/packages/epaphrodites/src/postInstall.php"
+      ],
+      "post-autoload-dump": [
+        "php vendor/packages/epaphrodites/src/postInstall.php"
+      ]
     }
-}
+  }
