@@ -1,0 +1,29 @@
+{
+    "name": "packages/epaphrodites",
+    "type": "library",
+    "description": "Package, the flexible, fast, and secure template language for PHP",
+    "keywords": ["templating"],
+    "homepage": "https://twig.symfony.com",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "EPAPHRODITES",
+            "email": "infos@epaphrodite.org",
+            "homepage": "https://epaphrodite.org",
+            "role": "Lead Developer"
+        },
+        {
+            "name": "Y'srael Aimé N'DRI",
+            "role": "Contributors"
+        }
+    ],
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4" : {
+            "Ndri\\" : "src/"
+        }
+    }
+}
