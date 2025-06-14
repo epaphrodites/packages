@@ -1,5 +1,5 @@
 {
-    "name": "packages/epaphrodites",
+    "name": "epaphrodites/packages",
     "type": "library",
     "description": "Package, the flexible, fast, and secure template language for PHP",
     "keywords": ["templating"],
