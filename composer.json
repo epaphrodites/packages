@@ -3,7 +3,7 @@
   "type": "library",
   "description": "Package, the flexible, fast, and secure template language for PHP",
   "keywords": ["templating"],
-  "homepage": "https://twig.symfony.com",
+  "homepage": "https://epaphrodites.org",
   "license": "MIT",
   "minimum-stability": "dev",
   "authors": [
@@ -28,13 +28,12 @@
   },
   "scripts": {
     "post-install-cmd": [
-      "php src/postInstall.php"
+      "echo 'Running post-install-cmd...'",
+      "php vendor/epaphrodites/packages/src/postInstall.php"
     ],
     "post-update-cmd": [
-      "php src/postInstall.php"
-    ],
-    "post-autoload-dump": [
-      "php src/postInstall.php"
+      "echo 'Running post-update-cmd...'",
+      "php vendor/epaphrodites/packages/src/postInstall.php"
     ]
   }
 }
