@@ -27,13 +27,7 @@
     }
   },
   "scripts": {
-    "post-install-cmd": [
-      "echo 'Running post-install-cmd...'",
-      "php vendor/epaphrodites/packages/src/postInstall.php"
-    ],
-    "post-update-cmd": [
-      "echo 'Running post-update-cmd...'",
-      "php vendor/epaphrodites/packages/src/postInstall.php"
-    ]
+      "post-install-cmd": "echo 'TEST: Scripts work!'",
+      "post-update-cmd": "echo 'TEST: Scripts work!'"
   }
 }
