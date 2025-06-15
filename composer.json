@@ -23,17 +23,17 @@
   },
   "autoload": {
     "psr-4": {
-      "Ndri\\": "src/"
-    }
+      "Ndri\\": "src/",
+      "Epaphrodites\\Packages\\": "src/"
+    },
+    "files": ["src/AutoInstaller.php"]
   },
   "scripts": {
     "post-install-cmd": [
-      "echo 'Installation des dépendances'",
-      "composer run-script post-package-install --working-dir=vendor/epaphrodites/packages"
+      "Epaphrodites\\Packages\\AutoInstaller::init"
     ],
     "post-update-cmd": [
-      "echo 'Mise à jour des dépendances'",
-      "composer run-script post-package-install --working-dir=vendor/epaphrodites/packages"
+      "Epaphrodites\\Packages\\AutoInstaller::init"
     ]
   }
 }
