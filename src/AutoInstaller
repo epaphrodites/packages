@@ -1,0 +1,304 @@
+<?php
+declare(strict_types=1);
+
+require "config/modelConfig.php";
+
+use Ndri\config\modelConfig;
+
+/**
+ * AutoInstaller - Automatically installs and configures package files
+ * 
+ * This class handles the installation of synchronization configuration files
+ * and scripts for the packages/epaphrodites package.
+ */
+class AutoInstaller
+{
+    private const CONSOLE_COLORS = [
+        'reset' => "\033[0m",
+        'bold' => "\033[1m",
+        'cyan' => "\033[1;36m",
+        'green' => "\033[0;32m",
+        'red' => "\033[0;31m",
+        'blue' => "\033[0;34m",
+        'yellow' => "\033[1;33m",
+        'bold_green' => "\033[1;32m",
+        'bold_red' => "\033[1;31m"
+    ];
+
+    private string $rootDir;
+    private string $packageDir;
+    private bool $installationSuccess = true;
+    private array $createdFiles = [];
+    private array $errors = [];
+
+    public function __construct()
+    {
+        $this->rootDir = getcwd();
+        $this->packageDir = __DIR__;
+        $this->displayWelcomeMessage();
+    }
+
+    /**
+     * Main execution method
+     * 
+     * @return void
+     * @throws Exception if critical errors occur during installation
+     */
+    public function run(): void
+    {
+        try {
+            $this->validateEnvironment();
+            $this->installFiles();
+            $this->displayResult();
+        } catch (Exception $e) {
+            $this->handleCriticalError($e);
+        }
+    }
+
+    /**
+     * Validates the environment before installation
+     * 
+     * @throws Exception if environment validation fails
+     */
+    private function validateEnvironment(): void
+    {
+        if (!is_writable($this->rootDir)) {
+            throw new Exception("Root directory is not writable: {$this->rootDir}");
+        }
+
+        if (!class_exists('Ndri\config\modelConfig')) {
+            throw new Exception("Required class modelConfig not found");
+        }
+    }
+
+    /**
+     * Installs all required files
+     */
+    private function installFiles(): void
+    {
+        $filesToInstall = [
+            [
+                'filename' => 'synchrone-config.yaml',
+                'callback' => fn() => modelConfig::createDefaultUpdateYaml($this->rootDir . '/synchrone-config.yaml'),
+                'description' => 'update configuration file'
+            ],
+            [
+                'filename' => 'synchrone',
+                'callback' => fn() => modelConfig::createDefaultSynchronePhp($this->rootDir . '/synchrone'),
+                'description' => 'synchronization script'
+            ]
+        ];
+
+        foreach ($filesToInstall as $file) {
+            $this->processFile(
+                $file['filename'],
+                $file['callback'],
+                $file['description']
+            );
+        }
+    }
+
+    /**
+     * Processes a single file installation
+     * 
+     * @param string $filename The name of the file to create
+     * @param callable $creationCallback The callback function to create the file
+     * @param string $description Human-readable description of the file
+     */
+    private function processFile(string $filename, callable $creationCallback, string $description): void
+    {
+        $filePath = $this->rootDir . DIRECTORY_SEPARATOR . $filename;
+
+        if (file_exists($filePath)) {
+            $this->logInfo("ℹ️  File {$filename} already exists, skipping creation");
+            return;
+        }
+
+        try {
+            if ($creationCallback()) {
+                $this->createdFiles[] = [
+                    'name' => $filename,
+                    'description' => $description,
+                    'path' => $filePath
+                ];
+                $this->logSuccess("✓ File {$filename} created successfully");
+            } else {
+                $this->handleFileCreationError($filename, "Creation callback returned false");
+            }
+        } catch (Exception $e) {
+            $this->handleFileCreationError($filename, $e->getMessage());
+        }
+    }
+
+    /**
+     * Handles file creation errors
+     * 
+     * @param string $filename The filename that failed to create
+     * @param string $errorMessage The error message
+     */
+    private function handleFileCreationError(string $filename, string $errorMessage): void
+    {
+        $this->installationSuccess = false;
+        $this->errors[] = [
+            'file' => $filename,
+            'message' => $errorMessage
+        ];
+        $this->logError("❌ Error creating {$filename}: {$errorMessage}");
+    }
+
+    /**
+     * Handles critical errors that prevent installation
+     * 
+     * @param Exception $e The exception that occurred
+     */
+    private function handleCriticalError(Exception $e): void
+    {
+        $this->logError("💥 Critical error during installation: " . $e->getMessage());
+        echo "\n" . self::CONSOLE_COLORS['bold_red'] . "Installation aborted due to critical error" . self::CONSOLE_COLORS['reset'] . "\n";
+        exit(1);
+    }
+
+    /**
+     * Displays the welcome message
+     */
+    private function displayWelcomeMessage(): void
+    {
+        echo "\n" . self::CONSOLE_COLORS['bold'] . self::CONSOLE_COLORS['cyan'] . 
+             "🚀 Installing packages/epaphrodites" . self::CONSOLE_COLORS['reset'] . "\n";
+        echo str_repeat("=", 50) . "\n\n";
+    }
+
+    /**
+     * Displays the installation results
+     */
+    private function displayResult(): void
+    {
+        echo "\n" . str_repeat("=", 50) . "\n";
+
+        if ($this->installationSuccess) {
+            $this->displaySuccessResult();
+        } else {
+            $this->displayErrorResult();
+        }
+
+        $this->displayCreatedFiles();
+    }
+
+    /**
+     * Displays success result message
+     */
+    private function displaySuccessResult(): void
+    {
+        echo self::CONSOLE_COLORS['bold_green'] . "🎉 Installation completed successfully!" . self::CONSOLE_COLORS['reset'] . "\n";
+        
+        if (!empty($this->createdFiles)) {
+            echo self::CONSOLE_COLORS['yellow'] . "📁 Files created in your project root:" . self::CONSOLE_COLORS['reset'] . "\n";
+        } else {
+            echo self::CONSOLE_COLORS['blue'] . "ℹ️  All files already existed, no new files created" . self::CONSOLE_COLORS['reset'] . "\n";
+        }
+    }
+
+    /**
+     * Displays error result message
+     */
+    private function displayErrorResult(): void
+    {
+        echo self::CONSOLE_COLORS['bold_red'] . "⚠️  Installation completed with errors" . self::CONSOLE_COLORS['reset'] . "\n";
+        
+        if (!empty($this->errors)) {
+            echo self::CONSOLE_COLORS['red'] . "📋 Errors encountered:" . self::CONSOLE_COLORS['reset'] . "\n";
+            foreach ($this->errors as $error) {
+                echo "   • {$error['file']}: {$error['message']}\n";
+            }
+        }
+        
+        echo "\n" . self::CONSOLE_COLORS['yellow'] . "💡 Please review the errors above and try again" . self::CONSOLE_COLORS['reset'] . "\n";
+        exit(1);
+    }
+
+    /**
+     * Displays the list of created files
+     */
+    private function displayCreatedFiles(): void
+    {
+        if (empty($this->createdFiles)) {
+            return;
+        }
+
+        foreach ($this->createdFiles as $file) {
+            echo "   • " . self::CONSOLE_COLORS['green'] . $file['name'] . self::CONSOLE_COLORS['reset'] . 
+                 " (" . $file['description'] . ")\n";
+        }
+        echo "\n";
+    }
+
+    /**
+     * Logs a success message with green color
+     * 
+     * @param string $message The message to log
+     */
+    private function logSuccess(string $message): void
+    {
+        echo self::CONSOLE_COLORS['green'] . $message . self::CONSOLE_COLORS['reset'] . "\n";
+    }
+
+    /**
+     * Logs an error message with red color
+     * 
+     * @param string $message The message to log
+     */
+    private function logError(string $message): void
+    {
+        echo self::CONSOLE_COLORS['red'] . $message . self::CONSOLE_COLORS['reset'] . "\n";
+    }
+
+    /**
+     * Logs an info message with blue color
+     * 
+     * @param string $message The message to log
+     */
+    private function logInfo(string $message): void
+    {
+        echo self::CONSOLE_COLORS['blue'] . $message . self::CONSOLE_COLORS['reset'] . "\n";
+    }
+
+    /**
+     * Gets the installation status
+     * 
+     * @return bool True if installation was successful, false otherwise
+     */
+    public function wasSuccessful(): bool
+    {
+        return $this->installationSuccess;
+    }
+
+    /**
+     * Gets the list of created files
+     * 
+     * @return array Array of created files with their details
+     */
+    public function getCreatedFiles(): array
+    {
+        return $this->createdFiles;
+    }
+
+    /**
+     * Gets the list of errors that occurred during installation
+     * 
+     * @return array Array of errors with file and message details
+     */
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+}
+
+$installer = new AutoInstaller();
+$installer->run();
+
+if (!$installer->wasSuccessful()) {
+    echo "\nInstallation failed. Check the errors above.\n";
+    exit(1);
+} else {
+    echo "Installation completed successfully.\n";
+}
