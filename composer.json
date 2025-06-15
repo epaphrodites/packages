@@ -28,13 +28,13 @@
     },
     "scripts": {
       "post-install-cmd": [
-        "php vendor/packages/epaphrodites/src/postInstall.php"
+        "php vendor/epaphrodites/packages/src/postInstall.php"
       ],
       "post-update-cmd": [
-        "php vendor/packages/epaphrodites/src/postInstall.php"
+        "php vendor/epaphrodites/packages/src/postInstall.php"
       ],
       "post-autoload-dump": [
-        "php vendor/packages/epaphrodites/src/postInstall.php"
+        "php vendor/epaphrodites/packages/src/postInstall.php"
       ]
     }
   }
