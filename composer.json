@@ -27,7 +27,13 @@
     }
   },
   "scripts": {
-      "post-install-cmd": "echo 'TEST: Scripts work!'",
-      "post-update-cmd": "echo 'TEST: Scripts work!'"
+    "post-install-cmd": [
+      "echo 'Installation des dépendances'",
+      "composer run-script post-package-install --working-dir=vendor/epaphrodites/packages"
+    ],
+    "post-update-cmd": [
+      "echo 'Mise à jour des dépendances'",
+      "composer run-script post-package-install --working-dir=vendor/epaphrodites/packages"
+    ]
   }
 }

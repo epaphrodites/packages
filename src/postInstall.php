@@ -1,68 +1,46 @@
 <?php
 
-require "config/modelConfig.php";
+namespace Ndri\Installer;
 
 use Ndri\config\modelConfig;
 
-$rootDir = getcwd();
+class postInstall
+{
+    public static function install()
+    {
+        $rootDir = getcwd();
+        echo "🚀 Début de l'installation de epaphrodites/packages...\n";
 
-$packageDir = __DIR__;
-
-echo "🚀 Installation de packages/epaphrodites...\n";
-
-function createFileIfNotExists($source, $destination, $filename) {
-    if (!file_exists($destination)) {
-        if (file_exists($source)) {
-            if (copy($source, $destination)) {
-                echo "✓ Fichier {$filename} créé avec succès\n";
-                return true;
+        $success = true;
+        
+        // Configuration YAML
+        $yamlPath = $rootDir . '/epaphrodites-config.yaml';
+        if (!file_exists($yamlPath)) {
+            if (modelConfig::createDefaultUpdateYaml($yamlPath)) {
+                echo "✓ Fichier epaphrodites-config.yaml créé\n";
             } else {
-                echo "❌ Erreur lors de la création de {$filename}\n";
-                return false;
+                echo "❌ Erreur création epaphrodites-config.yaml\n";
+                $success = false;
             }
-        } else {
-            echo "⚠️  Fichier source {$filename} introuvable\n";
-            return false;
         }
-    } else {
-        echo "ℹ️  Fichier {$filename} existe déjà, pas de modification\n";
-        return true;
+
+        // Fichier synchrone
+        $synchronePath = $rootDir . '/synchrone';
+        if (!file_exists($synchronePath)) {
+            if (modelConfig::createDefaultSynchronePhp($synchronePath)) {
+                echo "✓ Fichier synchrone créé\n";
+            } else {
+                echo "❌ Erreur création synchrone\n";
+                $success = false;
+            }
+        }
+
+        if ($success) {
+            echo "\n✅ Installation réussie!\n";
+            return 0;
+        } else {
+            echo "\n⚠️ Des erreurs sont survenues\n";
+            return 1;
+        }
     }
-}
-
-$success = true;
-
-$updateYamlPath = $rootDir . '/epaphrodites-config.yaml';
-if (!file_exists($updateYamlPath)) {
-    if (modelConfig::createDefaultUpdateYaml($updateYamlPath)) {
-        echo "✓ Fichier update.yaml créé avec succès\n";
-    } else {
-        echo "❌ Erreur lors de la création de epaphrodites-config.yaml\n";
-        $success = false;
-    }
-} else {
-    echo "ℹ️  Fichier update.yaml existe déjà, pas de modification\n";
-}
-
-$synchronePhpPath = $rootDir . '/synchrone';
-if (!file_exists($synchronePhpPath)) {
-    if (modelConfig::createDefaultSynchronePhp($synchronePhpPath)) {
-        echo "✓ Fichier synchrone créé avec succès\n";
-    } else {
-        echo "❌ Erreur lors de la création de synchrone\n";
-        $success = false;
-    }
-} else {
-    echo "ℹ️  Fichier synchrone existe déjà, pas de modification\n";
-}
-
-if ($success) {
-    echo "\n🎉 Installation terminée avec succès !\n";
-    echo "📁 Fichiers créés à la racine de votre projet :\n";
-    echo "   - update.yaml (configuration de mise à jour)\n";
-    echo "   - synchrone (script de synchronisation)\n";
-    echo "\n📖 Consultez la documentation sur https://epaphrodite.org\n";
-} else {
-    echo "\n⚠️  Installation terminée avec des erreurs\n";
-    exit(1);
 }
