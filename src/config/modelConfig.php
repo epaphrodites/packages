@@ -91,11 +91,18 @@ public static function createDefaultSynchronePhp($filePath) {
 # appropriate permissions to install extensions and restart services.
 # ============================================================================= #
 
-require "config/modelConfig.php";
+/*
+    |--------------------------------------------------------------------------
+    | Run main directory containt which first Config
+    |--------------------------------------------------------------------------
+*/   
+    require 'bin/config/SetDirectory.php';
 
-use Ndri\config\generateConfig;
+    require _DIR_VENDOR_ . "/packages/src/config/generateConfig.php";
 
-generateConfig::lunch();
+    use Ndri\config\generateConfig;
+
+    generateConfig::lunch();
 
 PHP;
 
