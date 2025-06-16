@@ -7,19 +7,24 @@ use Epaphrodites\Packages\config\EpaphroditesConfigReader;
 class generateConfig
 {
 
-    public function readYamlFile(){
+    private function readYamlFile(){
 
         $rootDir = getcwd();
-        $reader = new EpaphroditesConfigReader($rootDir.'synchrone-config.yaml');
+        $yamlPath = $rootDir . '/synchrone-config.yaml';
+        
+        if (!file_exists($yamlPath)) {
+            throw new \Exception("Ensure synchrone-config.yaml is located at the root of your project.");
+        }
+        
+        $reader = new EpaphroditesConfigReader($yamlPath);
 
-        $reader->isUpdateTypeEnabled('all');
-
+        return $reader;
     }
 
     public static function lunch()
     {
         $instance = new self();
-        $instance->readYamlFile();
+        $getData = $instance->readYamlFile();
     }
 
 }
