@@ -104,9 +104,8 @@ public static function createDefaultSynchronePhp($filePath) {
     |--------------------------------------------------------------------------
 */ 
     require _DIR_VENDOR_.'/autoload.php';
-    use Ndri\config\generateConfig;
 
-    generateConfig::lunch();
+    Epaphrodites\Packages\config\generateConfig::lunch();
 
 PHP;
 
