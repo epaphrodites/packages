@@ -1,8 +1,8 @@
 <?php
 
-namespace Epaphrodites\Packages;
+namespace Epaphrodites\Packages\config;
 
-use Epaphrodites\Packages\EpaphroditesConfigReader;
+use Epaphrodites\Packages\config\EpaphroditesConfigReader;
 
 class generateConfig
 {
@@ -10,7 +10,7 @@ class generateConfig
     public function readYamlFile(){
 
         $rootDir = getcwd();
-        $reader = new EpaphroditesConfigReader($rootDir.'epaphrodites-config.yaml');
+        $reader = new EpaphroditesConfigReader($rootDir.'synchrone-config.yaml');
 
         $reader->isUpdateTypeEnabled('all');
 

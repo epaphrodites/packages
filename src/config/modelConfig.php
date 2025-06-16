@@ -1,6 +1,6 @@
 <?php
 
-namespace Epaphrodites\Packages;
+namespace Epaphrodites\Packages\config;
 
 class modelConfig
 {

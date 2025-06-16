@@ -7,7 +7,8 @@
  * du framework Epaphrodites. Aucune fonctionnalité de sauvegarde ou modification.
  */
 
-namespace Epaphrodites\Packages;
+namespace Epaphrodites\Packages\config;
+
 use Exception;
 
 class EpaphroditesConfigReader

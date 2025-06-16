@@ -1,9 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 require "config/modelConfig.php";
 
-use Epaphrodites\Packages\modelConfig;
+use Epaphrodites\Packages\config\modelConfig;
 
 /**
  * AutoInstaller - Automatically installs and configures package files
@@ -11,7 +12,7 @@ use Epaphrodites\Packages\modelConfig;
  * This class handles the installation of synchronization configuration files
  * and scripts for the packages/epaphrodites package.
  */
-class AutoInstaller
+class AutoInstaller extends modelConfig
 {
     private const CONSOLE_COLORS = [
         'reset' => "\033[0m",
@@ -66,7 +67,7 @@ class AutoInstaller
             throw new Exception("Root directory is not writable: {$this->rootDir}");
         }
 
-        if (!class_exists('Ndri\config\modelConfig')) {
+        if (!class_exists('Epaphrodites\Packages\config\modelConfig')) {
             throw new Exception("Required class modelConfig not found");
         }
     }
