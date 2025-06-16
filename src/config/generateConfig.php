@@ -52,7 +52,17 @@ class generateConfig
 
     private function installComponents(){
         
-        $getData = $this->readYamlFile();
+        $getDataClass = $this->readYamlFile();
+
+        // Get update
+        $getDataClass->isUpdateTypeEnabled('all');
+
+        // Get section
+        $getDataClass->getUpdateTargets('specific');
+
+        // Get
+        $getDataClass->shouldUpdate('config', 'config.ini');
+
     }
 
     private function getAppPath(){

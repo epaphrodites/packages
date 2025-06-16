@@ -15,10 +15,10 @@ class modelConfig
 
     # Available update modes
     update:
-    type:
-        all: true          # Update all files
-        specific: false    # Update only specific files
-        new: true          # Update only new files
+        type:
+            all : true          # Update all files
+            specific : false    # Update only specific files
+            new : true          # Update only new files
 
     # Specific folders/files to be updated
     update_targets:
