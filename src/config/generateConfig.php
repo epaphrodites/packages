@@ -1,6 +1,8 @@
 <?php
 
-use Ndri\config\EpaphroditesConfigReader;
+namespace Epaphrodites\Packages;
+
+use Epaphrodites\Packages\EpaphroditesConfigReader;
 
 class generateConfig
 {
@@ -11,8 +13,6 @@ class generateConfig
         $reader = new EpaphroditesConfigReader($rootDir.'epaphrodites-config.yaml');
 
         $reader->isUpdateTypeEnabled('all');
-
-        var_dump($reader);die;
 
     }
 

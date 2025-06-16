@@ -1,6 +1,6 @@
 <?php
 
-nameSpace Ndri\config;
+namespace Epaphrodites\Packages;
 
 class modelConfig
 {
@@ -98,8 +98,12 @@ public static function createDefaultSynchronePhp($filePath) {
 */   
     require 'bin/config/SetDirectory.php';
 
-    require _DIR_VENDOR_ . "/packages/src/config/generateConfig.php";
-
+/*
+    |--------------------------------------------------------------------------
+    | Run autoloader of composer
+    |--------------------------------------------------------------------------
+*/ 
+    require _DIR_VENDOR_.'/autoload.php';
     use Ndri\config\generateConfig;
 
     generateConfig::lunch();

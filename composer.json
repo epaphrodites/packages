@@ -23,17 +23,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Ndri\\": "src/",
       "Epaphrodites\\Packages\\": "src/"
-    },
-    "files": ["src/AutoInstaller.php"]
-  },
-  "scripts": {
-    "post-install-cmd": [
-      "Epaphrodites\\Packages\\AutoInstaller::init"
-    ],
-    "post-update-cmd": [
-      "Epaphrodites\\Packages\\AutoInstaller::init"
-    ]
+    }
   }
 }

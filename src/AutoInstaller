@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require "config/modelConfig.php";
 
-use Ndri\config\modelConfig;
+use Epaphrodites\Packages\modelConfig;
 
 /**
  * AutoInstaller - Automatically installs and configures package files
