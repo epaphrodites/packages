@@ -55,4 +55,9 @@ class generateConfig
         $getData = $this->readYamlFile();
     }
 
+    private function getAppPath(){
+        $appDir = 'bin/';
+        $rootDir = getcwd();
+    }
+
 }

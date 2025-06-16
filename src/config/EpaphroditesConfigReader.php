@@ -52,12 +52,10 @@ class EpaphroditesConfigReader
         foreach ($lines as $line) {
             $line = rtrim($line);
 
-            // Ignorer les lignes vides et commentaires
             if (empty($line) || $line[0] === '#') {
                 continue;
             }
 
-            // Calculer le niveau d'indentation
             $indent = 0;
             $len = strlen($line);
             for ($i = 0; $i < $len; $i++) {
@@ -73,13 +71,11 @@ class EpaphroditesConfigReader
             $line = trim($line);
             $level = intval($indent / 2);
 
-            // Ajuster la pile selon le niveau
             while (count($levels) > $level + 1) {
                 array_pop($stack);
                 array_pop($levels);
             }
 
-            // Traitement des éléments de liste
             if (strpos($line, '- ') === 0) {
                 $item = trim(substr($line, 2));
                 
@@ -102,7 +98,6 @@ class EpaphroditesConfigReader
                 continue;
             }
 
-            // Traitement des paires clé:valeur
             if (strpos($line, ':') !== false) {
                 list($key, $value) = $this->splitKeyValue($line);
                 $value = trim($value);
@@ -138,9 +133,7 @@ class EpaphroditesConfigReader
         return [$key, $value];
     }
 
-    /**
-     * Convertit une valeur string en type approprié
-     */
+
     private function convertValue($value)
     {
         $value = trim($value);
@@ -161,17 +154,11 @@ class EpaphroditesConfigReader
         return $value;
     }
 
-    /**
-     * Retourne la configuration complète
-     */
     public function getConfig()
     {
         return $this->config;
     }
 
-    /**
-     * Retourne une valeur par chemin (ex: "update.type.all")
-     */
     public function get($path, $default = null)
     {
         $keys = explode('.', $path);
@@ -187,9 +174,6 @@ class EpaphroditesConfigReader
         return $current;
     }
 
-    /**
-     * Vérifie si un chemin existe
-     */
     public function exists($path)
     {
         $keys = explode('.', $path);
@@ -213,9 +197,6 @@ class EpaphroditesConfigReader
         return $this->get('version');
     }
 
-    /**
-     * Retourne le nom du package
-     */
     public function getPackage()
     {
         return $this->get('package');
