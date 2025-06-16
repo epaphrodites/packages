@@ -105,7 +105,25 @@ public static function createDefaultSynchronePhp($filePath) {
 */ 
     require _DIR_VENDOR_.'/autoload.php';
 
-    Epaphrodites\Packages\config\generateConfig::lunch();
+    array_shift($argv);
+
+    if (count($argv) > 0) {
+        $command = implode(' ', $argv);
+        
+        $result = match ($command) {
+            "-i" => requireComponent('install'),
+            "-u" => requireComponent('update'),
+            default => "Unrecognized command." . PHP_EOL
+        };
+        
+        echo $result;
+    } else {
+        echo "No command specified." . PHP_EOL;
+    }    
+
+    function requireComponent($option) {
+        Epaphrodites\Packages\config\generateConfig::lunch($option);
+    }
 
 PHP;
 

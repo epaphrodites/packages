@@ -2,6 +2,7 @@
 
 namespace Epaphrodites\Packages\config;
 
+use Epaphrodites\Packages\config\PackageUpdater;
 use Epaphrodites\Packages\config\EpaphroditesConfigReader;
 
 class generateConfig
@@ -21,10 +22,37 @@ class generateConfig
         return $reader;
     }
 
-    public static function lunch()
+    public static function lunch(
+        string $option
+    )
     {
-        $instance = new self();
-        $getData = $instance->readYamlFile();
+        
+        if($option == 'install'){
+            
+            $instance = new self();
+            return $instance->installComponents();
+        }
+
+        if($option == 'update'){
+
+            $instance = new self();
+            return $instance->getNewsComponentsFromPackagist();
+        }
+
+        return 'Unrecognized command';
+    }
+
+    private function getNewsComponentsFromPackagist():array{
+
+        $updater = new PackageUpdater(true);
+        $result = $updater->updateEpaphroditesPackage();
+
+        return $result;
+    }
+
+    private function installComponents(){
+        
+        $getData = $this->readYamlFile();
     }
 
 }
