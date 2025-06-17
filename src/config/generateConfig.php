@@ -8,7 +8,7 @@ use Epaphrodites\Packages\config\EpaphroditesConfigReader;
 class generateConfig
 {
 
-    private function readYamlFile(){
+    private function readYamlFile():EpaphroditesConfigReader {
 
         $rootDir = getcwd();
         $yamlPath = $rootDir . '/synchrone-config.yaml';
@@ -24,8 +24,7 @@ class generateConfig
 
     public static function lunch(
         string $option
-    )
-    {
+    ){
         
         if($option == 'install'){
             
