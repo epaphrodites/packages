@@ -3,6 +3,8 @@
 namespace Epaphrodites\Packages\config;
 
 use Epaphrodites\Packages\config\PackageUpdater;
+use RecursiveIteratorIterator;
+use RecursiveDirectoryIterator;
 use Epaphrodites\Packages\config\EpaphroditesConfigReader;
 
 class generateConfig
@@ -81,131 +83,90 @@ class generateConfig
         echo $newComponentsUpdate . PHP_EOL;
     }
 
-    private function generalUpdate($yamlFileContent){
-
-
+    private function generalUpdate($yamlFileContent)
+    {
         $rootPath = getcwd();
-        $vendorPackagePath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
-
+        $vendorPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
         $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources';
-        
-        $matches = $this->checkDirectoryCorrespondence($rootPath, $vendorPackagePath);
-        
-        if (!empty($matches)) {
-            $this->replaceMatchedFilesFromVendorWithDatedBackup($rootPath, $vendorPackagePath, $matches, $backupPath);
-        } else {
-            echo "🔍 Aucune correspondance trouvée. Aucun remplacement effectué." . PHP_EOL;
-        }
+    
+        $directoriesToCheck = ['bin', 'public/layouts', 'config']; // Ajoute tous les dossiers à surveiller ici
+        $this->mergeDirectoriesFromVendor($vendorPath, $rootPath, $backupPath, $directoriesToCheck);
     }
-
-    private function checkDirectoryCorrespondence(string $rootPath, string $targetPath): array
-    {
-        $directoriesToCheck = ['bin', 'public/layouts'];
-        $matches = [];
-
-        foreach ($directoriesToCheck as $dirName) {
-            $sourceDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dirName;
-            $targetDir = rtrim($targetPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dirName;
-
-            if (!is_dir($sourceDir) || !is_dir($targetDir)) {
-                continue;
-            }
-
-            $sourceItems = scandir($sourceDir);
-            $targetItems = scandir($targetDir);
-
-            $sourceItems = array_diff($sourceItems, ['.', '..']);
-            $targetItems = array_diff($targetItems, ['.', '..']);
-
-            foreach ($sourceItems as $item) {
-                if (in_array($item, $targetItems)) {
-                    $matches[] = [
-                        'directory' => $dirName,
-                        'item' => $item,
-                        'type' => is_dir($sourceDir . '/' . $item) ? 'directory' : 'file'
-                    ];
-                }
-            }
-        }
-
-        return $matches;
-    }
-
-    private function replaceMatchedFilesFromVendorWithDatedBackup(string $rootPath, string $vendorPath, array $matches, string $backupBasePath): void
-    {
+    
+    private function mergeDirectoriesFromVendor(
+        string $vendorPath,
+        string $rootPath,
+        string $backupBasePath,
+        array $directoriesToCheck
+    ): void {
         $dateFolder = date('Y-m-d_His');
         $backupPath = rtrim($backupBasePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dateFolder;
         $logMessages = [];
-        $replacedCount = 0;
-
-        foreach ($matches as $match) {
-            $dir = $match['directory'];
-            $item = $match['item'];
-
-            $source = $vendorPath . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $item;
-            $destination = $rootPath . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $item;
-            $backup = $backupPath . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $item;
-
-            // Sauvegarde de l'ancien fichier/dossier s'il existe
-            if (file_exists($destination)) {
-                if (!is_dir(dirname($backup))) {
-                    mkdir(dirname($backup), 0777, true);
+        $operationCount = 0;
+    
+        foreach ($directoriesToCheck as $dirName) {
+            $vendorDir = $vendorPath . DIRECTORY_SEPARATOR . $dirName;
+            $rootDir = $rootPath . DIRECTORY_SEPARATOR . $dirName;
+    
+            if (!is_dir($vendorDir)) continue;
+    
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($vendorDir, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+    
+            foreach ($iterator as $vendorItemPath) {
+                $relativePath = str_replace($vendorDir . DIRECTORY_SEPARATOR, '', $vendorItemPath);
+                $targetPath = $rootDir . DIRECTORY_SEPARATOR . $relativePath;
+                $backupTarget = $backupPath . DIRECTORY_SEPARATOR . $dirName . DIRECTORY_SEPARATOR . $relativePath;
+    
+                // Si le fichier existe déjà dans le projet, on le sauvegarde avant remplacement
+                if (file_exists($targetPath)) {
+                    if (!is_dir(dirname($backupTarget))) {
+                        mkdir(dirname($backupTarget), 0777, true);
+                    }
+                    rename($targetPath, $backupTarget);
+                    $logMessages[] = "🕓 Sauvegarde : $dirName/$relativePath → old-ressources/$dateFolder/$dirName/$relativePath";
                 }
-                rename($destination, $backup);
-                $logMessages[] = "🕓 Sauvegarde : $dir/$item → old-ressources/$dateFolder/$dir/$item";
-            }
-
-            // Remplacement depuis vendor
-            if (is_file($source)) {
-                if (!is_dir(dirname($destination))) {
-                    mkdir(dirname($destination), 0777, true);
+    
+                // Création du dossier parent si besoin
+                if (!is_dir(dirname($targetPath))) {
+                    mkdir(dirname($targetPath), 0777, true);
                 }
-                copy($source, $destination);
-            } elseif (is_dir($source)) {
-                $this->copyDirectory($source, $destination);
+    
+                // Copie fichier ou dossier
+                if (is_file($vendorItemPath)) {
+                    copy($vendorItemPath, $targetPath);
+                } elseif (is_dir($vendorItemPath) && !file_exists($targetPath)) {
+                    mkdir($targetPath, 0777, true);
+                }
+    
+                $logMessages[] = "✅ Copié ou remplacé : $dirName/$relativePath";
+                $operationCount++;
             }
-
-            $logMessages[] = "✅ Remplacé  : $dir/$item";
-            $replacedCount++;
         }
-
+    
         // Affichage console
-        echo PHP_EOL . "📦 Actions effectuées :" . PHP_EOL;
-        foreach ($logMessages as $msg) {
-            echo $msg . PHP_EOL;
+        if ($operationCount > 0) {
+            echo PHP_EOL . "📦 Actions effectuées :" . PHP_EOL;
+            foreach ($logMessages as $msg) {
+                echo $msg . PHP_EOL;
+            }
+            echo PHP_EOL . "✅ Total : $operationCount fichiers/dossiers ajoutés ou remplacés" . PHP_EOL;
+        } else {
+            echo "🔍 Aucun changement effectué : aucun fichier trouvé dans vendor." . PHP_EOL;
         }
-
-        echo PHP_EOL . "✅ Total de fichiers/dossiers remplacés : $replacedCount" . PHP_EOL;
-
+    
         // Enregistrement du log
         if (!is_dir($backupPath)) {
             mkdir($backupPath, 0777, true);
         }
-
-        $logFile = $backupPath . DIRECTORY_SEPARATOR . 'log.txt';
-        file_put_contents($logFile, implode(PHP_EOL, $logMessages));
+        file_put_contents($backupPath . DIRECTORY_SEPARATOR . 'log.txt', implode(PHP_EOL, $logMessages));
     }
-
-    private function copyDirectory(string $source, string $destination): void
-    {
-        if (!is_dir($destination)) {
-            mkdir($destination, 0777, true);
-        }
-
-        $items = scandir($source);
-        foreach ($items as $item) {
-            if ($item === '.' || $item === '..') continue;
-
-            $src = $source . DIRECTORY_SEPARATOR . $item;
-            $dst = $destination . DIRECTORY_SEPARATOR . $item;
-
-            if (is_dir($src)) {
-                $this->copyDirectory($src, $dst);
-            } else {
-                copy($src, $dst);
-            }
-        }
-    }
+    
+    
+    
+    
 
     private function specificUpdate($yamlFileContent){
         
