@@ -67,7 +67,7 @@ class generateConfig
 
         // Traitement des mises à jour générales ou spécifiques
         $generalOrSpecificUpdate = match (true) {
-            $allUpdate => $this->generalUpdate($yamlFileContent),
+            $allUpdate => $this->generalUpdate(),
             $specificUpdate => $this->specificUpdate($yamlFileContent),
             default => '⚠️ Aucune mise à jour générale ou spécifique détectée.',
         };
@@ -76,23 +76,22 @@ class generateConfig
 
         // Traitement des nouvelles composantes
         $newComponentsUpdate = match (true) {
-            $newComponentUpdate => $this->newsComponentsUpdate($yamlFileContent),
+            $newComponentUpdate => $this->newsComponentsUpdate(),
             default => '⚠️ Aucune mise à jour de nouvelles composantes demandée.',
         };
 
         echo $newComponentsUpdate . PHP_EOL;
     }
 
-    private function generalUpdate($yamlFileContent)
+    private function generalUpdate()
     {
         $rootPath = getcwd();
         $vendorPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
         $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources';
-    
-        $directoriesToCheck = ['bin', 'public/layouts', 'config']; // Ajoute tous les dossiers à surveiller ici
+        $directoriesToCheck = ['bin', 'public/layouts', 'config'];
         $this->mergeDirectoriesFromVendor($vendorPath, $rootPath, $backupPath, $directoriesToCheck);
     }
-    
+
     private function mergeDirectoriesFromVendor(
         string $vendorPath,
         string $rootPath,
@@ -103,49 +102,17 @@ class generateConfig
         $backupPath = rtrim($backupBasePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dateFolder;
         $logMessages = [];
         $operationCount = 0;
-    
+
         foreach ($directoriesToCheck as $dirName) {
             $vendorDir = $vendorPath . DIRECTORY_SEPARATOR . $dirName;
             $rootDir = $rootPath . DIRECTORY_SEPARATOR . $dirName;
-    
+            
             if (!is_dir($vendorDir)) continue;
-    
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($vendorDir, RecursiveDirectoryIterator::SKIP_DOTS),
-                RecursiveIteratorIterator::SELF_FIRST
-            );
-    
-            foreach ($iterator as $vendorItemPath) {
-                $relativePath = str_replace($vendorDir . DIRECTORY_SEPARATOR, '', $vendorItemPath);
-                $targetPath = $rootDir . DIRECTORY_SEPARATOR . $relativePath;
-                $backupTarget = $backupPath . DIRECTORY_SEPARATOR . $dirName . DIRECTORY_SEPARATOR . $relativePath;
-    
-                // Si le fichier existe déjà dans le projet, on le sauvegarde avant remplacement
-                if (file_exists($targetPath)) {
-                    if (!is_dir(dirname($backupTarget))) {
-                        mkdir(dirname($backupTarget), 0777, true);
-                    }
-                    rename($targetPath, $backupTarget);
-                    $logMessages[] = "🕓 Sauvegarde : $dirName/$relativePath → old-ressources/$dateFolder/$dirName/$relativePath";
-                }
-    
-                // Création du dossier parent si besoin
-                if (!is_dir(dirname($targetPath))) {
-                    mkdir(dirname($targetPath), 0777, true);
-                }
-    
-                // Copie fichier ou dossier
-                if (is_file($vendorItemPath)) {
-                    copy($vendorItemPath, $targetPath);
-                } elseif (is_dir($vendorItemPath) && !file_exists($targetPath)) {
-                    mkdir($targetPath, 0777, true);
-                }
-    
-                $logMessages[] = "✅ Copié ou remplacé : $dirName/$relativePath";
-                $operationCount++;
-            }
+
+            // Traitement sélectif : seulement les fichiers présents dans vendor
+            $this->processDirectorySelectively($vendorDir, $rootDir, $backupPath, $dirName, $logMessages, $operationCount);
         }
-    
+
         // Affichage console
         if ($operationCount > 0) {
             echo PHP_EOL . "📦 Actions effectuées :" . PHP_EOL;
@@ -156,18 +123,76 @@ class generateConfig
         } else {
             echo "🔍 Aucun changement effectué : aucun fichier trouvé dans vendor." . PHP_EOL;
         }
-    
+
         // Enregistrement du log
-        if (!is_dir($backupPath)) {
-            mkdir($backupPath, 0777, true);
+        if (!empty($logMessages)) {
+            if (!is_dir($backupPath)) {
+                mkdir($backupPath, 0777, true);
+            }
+            file_put_contents($backupPath . DIRECTORY_SEPARATOR . 'log.txt', implode(PHP_EOL, $logMessages));
         }
-        file_put_contents($backupPath . DIRECTORY_SEPARATOR . 'log.txt', implode(PHP_EOL, $logMessages));
+    }
+
+    private function processDirectorySelectively(
+        string $vendorDir,
+        string $rootDir,
+        string $backupPath,
+        string $dirName,
+        array &$logMessages,
+        int &$operationCount
+    ): void {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($vendorDir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $vendorItemPath) {
+            $relativePath = str_replace($vendorDir . DIRECTORY_SEPARATOR, '', $vendorItemPath);
+            $targetPath = $rootDir . DIRECTORY_SEPARATOR . $relativePath;
+            $backupTarget = $backupPath . DIRECTORY_SEPARATOR . $dirName . DIRECTORY_SEPARATOR . $relativePath;
+
+            // Si c'est un dossier, on le crée s'il n'existe pas
+            if (is_dir($vendorItemPath)) {
+                if (!is_dir($targetPath)) {
+                    mkdir($targetPath, 0777, true);
+                    $logMessages[] = "📁 Dossier créé : $dirName/$relativePath";
+                    $operationCount++;
+                }
+                continue;
+            }
+
+            // Si c'est un fichier
+            if (is_file($vendorItemPath)) {
+                // Créer le dossier parent si nécessaire
+                if (!is_dir(dirname($targetPath))) {
+                    mkdir(dirname($targetPath), 0777, true);
+                }
+
+                // Si le fichier existe déjà dans le projet
+                if (file_exists($targetPath)) {
+                    // Sauvegarder avant remplacement
+                    if (!is_dir(dirname($backupTarget))) {
+                        mkdir(dirname($backupTarget), 0777, true);
+                    }
+                    
+                    // Copier vers backup au lieu de rename pour éviter les conflits
+                    copy($targetPath, $backupTarget);
+                    $logMessages[] = "🕓 Sauvegarde : $dirName/$relativePath → old-ressources/" . basename($backupPath) . "/$dirName/$relativePath";
+                    
+                    // Remplacer le fichier
+                    copy($vendorItemPath, $targetPath);
+                    $logMessages[] = "🔄 Remplacé : $dirName/$relativePath";
+                    $operationCount++;
+                } else {
+                    // Le fichier n'existe pas dans le projet, on l'ajoute
+                    copy($vendorItemPath, $targetPath);
+                    $logMessages[] = "➕ Ajouté : $dirName/$relativePath";
+                    $operationCount++;
+                }
+            }
+        }
     }
     
-    
-    
-    
-
     private function specificUpdate($yamlFileContent){
         
         // Get section
@@ -178,8 +203,140 @@ class generateConfig
 
     }
 
-    private function newsComponentsUpdate($yamlFileContent){
-        
+
+
+
+    private function newsComponentsUpdate()
+    {
+        $rootPath = getcwd();
+        $newComponentPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/new-ressources';
+        $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources';
+    
+        $correspondances = $this->checkDirectoryCorrespondence($rootPath, $newComponentPath);
+    
+        if (!empty($correspondances)) {
+            foreach ($correspondances as $match) {
+                echo "Correspondance trouvée dans '{$match['directory']}': {$match['item']} ({$match['type']})" . PHP_EOL;
+    
+                $this->backupAndReplaceItem(
+                    $match['directory'],
+                    $match['item'],
+                    $newComponentPath,
+                    $rootPath,
+                    $backupPath
+                );
+            }
+        } else {
+            echo "Aucune correspondance trouvée entre les dossiers." . PHP_EOL;
+        }
     }
+    
+    private function checkDirectoryCorrespondence(string $rootPath, string $targetPath): array
+    {
+        $directoriesToCheck = ['bin', 'public/layouts'];
+        $matches = [];
+    
+        foreach ($directoriesToCheck as $dirName) {
+            $sourceDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dirName;
+            $targetDir = rtrim($targetPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dirName;
+    
+            if (!is_dir($sourceDir) || !is_dir($targetDir)) {
+                continue;
+            }
+    
+            $sourceItems = scandir($sourceDir);
+            $targetItems = scandir($targetDir);
+    
+            // Exclut . et ..
+            $sourceItems = array_diff($sourceItems, ['.', '..']);
+            $targetItems = array_diff($targetItems, ['.', '..']);
+    
+            foreach ($sourceItems as $item) {
+                if (in_array($item, $targetItems)) {
+                    $matches[] = [
+                        'directory' => $dirName,
+                        'item' => $item,
+                        'type' => is_dir($sourceDir . '/' . $item) ? 'directory' : 'file'
+                    ];
+                }
+            }
+        }
+    
+        return $matches;
+    }
+    
+
+    private function backupAndReplaceItem(string $directory, string $item, string $sourceBasePath, string $destinationBasePath, string $backupBasePath): void
+    {
+        $source = $sourceBasePath . '/' . $directory . '/' . $item;
+        $destination = $destinationBasePath . '/' . $directory . '/' . $item;
+        $backup = $backupBasePath . '/' . $directory . '/' . $item;
+    
+        // Sauvegarde
+        if (file_exists($destination)) {
+            if (is_dir($destination)) {
+                $this->recursiveCopy($destination, $backup);
+            } else {
+                @mkdir(dirname($backup), 0755, true);
+                copy($destination, $backup);
+            }
+            echo "Sauvegardé : $backup" . PHP_EOL;
+        }
+    
+        // Remplacement
+        if (is_dir($source)) {
+            // Supprimer le dossier destination avant de remplacer
+            $this->deleteRecursively($destination);
+            $this->recursiveCopy($source, $destination);
+            echo "Dossier remplacé : $destination" . PHP_EOL;
+        } elseif (is_file($source)) {
+            copy($source, $destination);
+            echo "Fichier remplacé : $destination" . PHP_EOL;
+        }
+    }
+    
+    private function recursiveCopy(string $source, string $destination): void
+    {
+        if (!is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+    
+        $items = scandir($source);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+    
+            $src = $source . '/' . $item;
+            $dst = $destination . '/' . $item;
+    
+            if (is_dir($src)) {
+                $this->recursiveCopy($src, $dst);
+            } else {
+                copy($src, $dst);
+            }
+        }
+    }
+    
+    private function deleteRecursively(string $path): void
+    {
+        if (!file_exists($path)) {
+            return;
+        }
+    
+        if (is_file($path)) {
+            unlink($path);
+        } elseif (is_dir($path)) {
+            $items = scandir($path);
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') {
+                    continue;
+                }
+                $this->deleteRecursively($path . '/' . $item);
+            }
+            rmdir($path);
+        }
+    }
+    
 
 }
