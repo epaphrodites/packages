@@ -9,40 +9,41 @@ class modelConfig
         $content = <<<YAML
     # Update configuration for the Epaphrodites framework
     # Automatically generated during installation
-
     version: "v0.01-stable"
     package: "packages/epaphrodites"
 
     # Available update modes
+    # all: Update all files
+    # specific: Update only specific files
+    # new: Update only new files
     update:
-        type:
-            all : true          # Update all files
-            specific : false    # Update only specific files
-            new : true          # Update only new files
+    type:
+        all: true
+        specific: false
+        new: true
 
     # Specific folders/files to be updated
     update_targets:
-
     config:
         - Config.ini: true
         - Config.json: true
         - email.ini: true
         - setDirectory.php: true
-
+    
     controllers:
         controllers:
-        - routesConfig.py
+        - routesConfig.py: true
         Controllers:
-        - apiController.php
+        - apiController.php: true
         render: true
         switchers: true
-
+    
     database:
         - config: true
         - gearShift: true
         - query: true
         - seeders: true
-
+    
     epaphrodites:
         - api: true
         - auth: true
@@ -67,7 +68,7 @@ class modelConfig
         - shares: true
         - translate: true
         - yedidiah: true
-
+    
     public:
         layouts:
         - display: true

@@ -1,10 +1,10 @@
 <?php
 
 /**
- * EpaphroditesConfigReader - Lecteur de configuration YAML
+ * EpaphroditesConfigReader - YAML Configuration Reader
  * 
- * Classe dédiée uniquement à la lecture du fichier de configuration YAML
- * du framework Epaphrodites. Aucune fonctionnalité de sauvegarde ou modification.
+ * Class dedicated solely to reading YAML configuration files
+ * for the Epaphrodites framework. No save or modification functionality.
  */
 
 namespace Epaphrodites\Packages\config;
@@ -23,24 +23,24 @@ class EpaphroditesConfigReader
     }
 
     /**
-     * Charge et parse le fichier YAML
+     * Load and parse the YAML file
      */
     private function loadConfig()
     {
         if (!file_exists($this->yamlFile)) {
-            throw new Exception("Le fichier YAML n'existe pas : " . $this->yamlFile);
+            throw new Exception("YAML file does not exist: " . $this->yamlFile);
         }
 
         $content = file_get_contents($this->yamlFile);
         if ($content === false) {
-            throw new Exception("Impossible de lire le fichier : " . $this->yamlFile);
+            throw new Exception("Unable to read file: " . $this->yamlFile);
         }
 
         $this->config = $this->parseYaml($content);
     }
 
     /**
-     * Parse le contenu YAML en PHP pur
+     * Parse YAML content into pure PHP
      */
     private function parseYaml($content)
     {
@@ -48,6 +48,7 @@ class EpaphroditesConfigReader
         $result = [];
         $stack = [&$result];
         $levels = [0];
+        $listContext = [false]; // To track if we're in a list context
 
         foreach ($lines as $line) {
             $line = rtrim($line);
@@ -71,25 +72,35 @@ class EpaphroditesConfigReader
             $line = trim($line);
             $level = intval($indent / 2);
 
+            // Adjust stack according to indentation level
             while (count($levels) > $level + 1) {
                 array_pop($stack);
                 array_pop($levels);
+                array_pop($listContext);
             }
 
+            // Process list elements
             if (strpos($line, '- ') === 0) {
                 $item = trim(substr($line, 2));
+                $current = &$stack[count($stack) - 1];
                 
+                // If list element contains a key-value pair
                 if (strpos($item, ':') !== false) {
                     list($key, $value) = $this->splitKeyValue($item);
                     $value = $this->convertValue($value);
                     
-                    $current = &$stack[count($stack) - 1];
+                    // Ensure current is an array
                     if (!is_array($current)) {
                         $current = [];
                     }
+                    
+                    // Add key-value directly (not as list element)
                     $current[$key] = $value;
+                    
+                    // Mark that we're in a list context with key-value
+                    $listContext[count($listContext) - 1] = true;
                 } else {
-                    $current = &$stack[count($stack) - 1];
+                    // Simple list element
                     if (!is_array($current)) {
                         $current = [];
                     }
@@ -98,17 +109,21 @@ class EpaphroditesConfigReader
                 continue;
             }
 
+            // Process normal key-value pairs
             if (strpos($line, ':') !== false) {
                 list($key, $value) = $this->splitKeyValue($line);
                 $value = trim($value);
 
+                $current = &$stack[count($stack) - 1];
+                
                 if (empty($value)) {
-                    $current = &$stack[count($stack) - 1];
+                    // Key without value, create new level
                     $current[$key] = [];
                     $stack[] = &$current[$key];
                     $levels[] = $level + 1;
+                    $listContext[] = false;
                 } else {
-                    $current = &$stack[count($stack) - 1];
+                    // Key with value
                     $current[$key] = $this->convertValue($value);
                 }
             }
@@ -118,7 +133,7 @@ class EpaphroditesConfigReader
     }
 
     /**
-     * Sépare une ligne clé:valeur
+     * Split a key:value line
      */
     private function splitKeyValue($line)
     {
@@ -133,7 +148,9 @@ class EpaphroditesConfigReader
         return [$key, $value];
     }
 
-
+    /**
+     * Convert a value to appropriate PHP type
+     */
     private function convertValue($value)
     {
         $value = trim($value);
@@ -154,11 +171,17 @@ class EpaphroditesConfigReader
         return $value;
     }
 
+    /**
+     * Get the complete configuration array
+     */
     public function getConfig()
     {
         return $this->config;
     }
 
+    /**
+     * Get a configuration value by dot notation path
+     */
     public function get($path, $default = null)
     {
         $keys = explode('.', $path);
@@ -174,6 +197,9 @@ class EpaphroditesConfigReader
         return $current;
     }
 
+    /**
+     * Check if a configuration path exists
+     */
     public function exists($path)
     {
         $keys = explode('.', $path);
@@ -190,20 +216,23 @@ class EpaphroditesConfigReader
     }
 
     /**
-     * Retourne la version du framework
+     * Get the framework version
      */
     public function getVersion()
     {
         return $this->get('version');
     }
 
+    /**
+     * Get the package name
+     */
     public function getPackage()
     {
         return $this->get('package');
     }
 
     /**
-     * Vérifie si un type de mise à jour est activé
+     * Check if an update type is enabled
      */
     public function isUpdateTypeEnabled($type)
     {
@@ -211,53 +240,82 @@ class EpaphroditesConfigReader
     }
 
     /**
-     * Retourne les cibles de mise à jour pour une section
+     * Get update targets for a section
      */
     public function getUpdateTargets($section = null)
     {
         if ($section) {
-            return $this->get("update_targets.$section", []);
+            $sectionData = $this->get("update_targets.$section", []);
+            
+            // If it's an array of lists (with key-value elements)
+            if (is_array($sectionData) && !empty($sectionData)) {
+                // Check if it's a direct associative array
+                if (!isset($sectionData[0])) {
+                    return $sectionData;
+                }
+                
+                // If it's an array of lists, convert to associative array
+                $result = [];
+                foreach ($sectionData as $key => $value) {
+                    if (is_string($key)) {
+                        $result[$key] = $value;
+                    }
+                }
+                return $result;
+            }
+            
+            return $sectionData;
         }
         return $this->get('update_targets', []);
     }
 
     /**
-     * Vérifie si un fichier/dossier doit être mis à jour
+     * Check if a file/folder should be updated
      */
     public function shouldUpdate($section, $item)
     {
+        // First try to retrieve directly
         $path = "update_targets.$section.$item";
         if ($this->exists($path)) {
             return $this->get($path);
         }
         
+        // If not found, retrieve section and search in parsed data
+        $sectionData = $this->getUpdateTargets($section);
+        
+        if (is_array($sectionData) && array_key_exists($item, $sectionData)) {
+            return $sectionData[$item];
+        }
+        
+        // If the specific item doesn't exist, check if the entire section is enabled
         $sectionPath = "update_targets.$section";
         $sectionValue = $this->get($sectionPath);
         
+        // If the section is a boolean true, everything is enabled
         return $sectionValue === true;
     }
 
     /**
-     * Affiche la configuration formatée (pour debug uniquement)
+     * Display formatted configuration (debug only)
      */
     public function displayConfig()
     {
-        echo "=== Configuration Epaphrodites Framework ===\n";
+        echo "=== Epaphrodites Framework Configuration ===\n";
         echo "Version: " . $this->getVersion() . "\n";
         echo "Package: " . $this->getPackage() . "\n\n";
 
-        echo "Types de mise à jour:\n";
+        echo "Update types:\n";
         $updateTypes = $this->get('update.type', []);
         foreach ($updateTypes as $type => $enabled) {
-            echo "  - $type: " . ($enabled ? 'Activé' : 'Désactivé') . "\n";
+            echo "  - $type: " . ($enabled ? 'Enabled' : 'Disabled') . "\n";
         }
 
-        echo "\nCibles de mise à jour:\n";
+        echo "\nUpdate targets:\n";
         $this->displayArray($this->getUpdateTargets(), 1);
     }
 
     /**
-     * Affiche un tableau récursivement (pour debug uniquement)
+     * Display array recursively (debug only)
      */
     private function displayArray($array, $level = 0)
     {
@@ -272,10 +330,19 @@ class EpaphroditesConfigReader
                 echo $indent . "$key:\n";
                 $this->displayArray($value, $level + 1);
             } else {
-                $status = $value === true ? 'Activé' : 
-                         ($value === false ? 'Désactivé' : $value);
+                $status = $value === true ? 'Enabled' : 
+                         ($value === false ? 'Disabled' : $value);
                 echo $indent . "$key: $status\n";
             }
         }
+    }
+
+    /**
+     * Debug method to display complete configuration structure
+     */
+    public function debugConfig()
+    {
+        echo "Complete configuration structure:\n";
+        print_r($this->config);
     }
 }
