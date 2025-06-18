@@ -87,33 +87,16 @@ class generateConfig
         $rootPath = getcwd();
         $vendorPackagePath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
 
-        $correspondances = $this->checkDirectoryCorrespondence($rootPath, $vendorPackagePath);
-
-        if (!empty($correspondances)) {
-            foreach ($correspondances as $match) {
-                echo "Correspondance trouvée dans '{$match['directory']}': {$match['item']} ({$match['type']})" . PHP_EOL;
-            }
+        $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources';
+        
+        $matches = $this->checkDirectoryCorrespondence($rootPath, $vendorPackagePath);
+        
+        if (!empty($matches)) {
+            $this->replaceMatchedFilesFromVendorWithDatedBackup($rootPath, $vendorPackagePath, $matches, $backupPath);
         } else {
-            echo "Aucune correspondance trouvée entre les dossiers." . PHP_EOL;
+            echo "🔍 Aucune correspondance trouvée. Aucun remplacement effectué." . PHP_EOL;
         }
-
-        die;
     }
-
-    private function specificUpdate($yamlFileContent){
-        
-        // Get section
-        $yamlFileContent->getUpdateTargets('config');
-
-        // Get
-        $yamlFileContent->shouldUpdate('config', 'Config.ini');
-
-    }
-
-    private function newsComponentsUpdate($yamlFileContent){
-        
-    }
-
 
     private function checkDirectoryCorrespondence(string $rootPath, string $targetPath): array
     {
@@ -131,7 +114,6 @@ class generateConfig
             $sourceItems = scandir($sourceDir);
             $targetItems = scandir($targetDir);
 
-            // Élimine les éléments système . et ..
             $sourceItems = array_diff($sourceItems, ['.', '..']);
             $targetItems = array_diff($targetItems, ['.', '..']);
 
@@ -147,6 +129,96 @@ class generateConfig
         }
 
         return $matches;
+    }
+
+    private function replaceMatchedFilesFromVendorWithDatedBackup(string $rootPath, string $vendorPath, array $matches, string $backupBasePath): void
+    {
+        $dateFolder = date('Y-m-d_His');
+        $backupPath = rtrim($backupBasePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dateFolder;
+        $logMessages = [];
+        $replacedCount = 0;
+
+        foreach ($matches as $match) {
+            $dir = $match['directory'];
+            $item = $match['item'];
+
+            $source = $vendorPath . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $item;
+            $destination = $rootPath . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $item;
+            $backup = $backupPath . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $item;
+
+            // Sauvegarde de l'ancien fichier/dossier s'il existe
+            if (file_exists($destination)) {
+                if (!is_dir(dirname($backup))) {
+                    mkdir(dirname($backup), 0777, true);
+                }
+                rename($destination, $backup);
+                $logMessages[] = "🕓 Sauvegarde : $dir/$item → old-ressources/$dateFolder/$dir/$item";
+            }
+
+            // Remplacement depuis vendor
+            if (is_file($source)) {
+                if (!is_dir(dirname($destination))) {
+                    mkdir(dirname($destination), 0777, true);
+                }
+                copy($source, $destination);
+            } elseif (is_dir($source)) {
+                $this->copyDirectory($source, $destination);
+            }
+
+            $logMessages[] = "✅ Remplacé  : $dir/$item";
+            $replacedCount++;
+        }
+
+        // Affichage console
+        echo PHP_EOL . "📦 Actions effectuées :" . PHP_EOL;
+        foreach ($logMessages as $msg) {
+            echo $msg . PHP_EOL;
+        }
+
+        echo PHP_EOL . "✅ Total de fichiers/dossiers remplacés : $replacedCount" . PHP_EOL;
+
+        // Enregistrement du log
+        if (!is_dir($backupPath)) {
+            mkdir($backupPath, 0777, true);
+        }
+
+        $logFile = $backupPath . DIRECTORY_SEPARATOR . 'log.txt';
+        file_put_contents($logFile, implode(PHP_EOL, $logMessages));
+    }
+
+    private function copyDirectory(string $source, string $destination): void
+    {
+        if (!is_dir($destination)) {
+            mkdir($destination, 0777, true);
+        }
+
+        $items = scandir($source);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') continue;
+
+            $src = $source . DIRECTORY_SEPARATOR . $item;
+            $dst = $destination . DIRECTORY_SEPARATOR . $item;
+
+            if (is_dir($src)) {
+                $this->copyDirectory($src, $dst);
+            } else {
+                copy($src, $dst);
+            }
+        }
+    }
+
+    private function specificUpdate($yamlFileContent){
+        
+        // Get section
+        $yamlFileContent->getUpdateTargets('config');
+
+        // Get
+        $yamlFileContent->shouldUpdate('config', 'Config.ini');
+
+    }
+
+    private function newsComponentsUpdate($yamlFileContent){
+        
     }
 
 }
