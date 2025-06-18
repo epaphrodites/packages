@@ -194,16 +194,14 @@ class generateConfig
     }
     
     private function specificUpdate($yamlFileContent){
-        
-        // Get section
-        $yamlFileContent->getUpdateTargets('config');
 
-        // Get
-        $yamlFileContent->shouldUpdate('config', 'Config.ini');
+        $rootPath = getcwd();
+        $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources';
+        $vendorPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
+        $getSpecific = $yamlFileContent->getUpdateTargets();
+
 
     }
-
-
 
 
     private function newsComponentsUpdate()
@@ -256,7 +254,7 @@ class generateConfig
                     $matches[] = [
                         'directory' => $dirName,
                         'item' => $item,
-                        'type' => is_dir($sourceDir . '/' . $item) ? 'directory' : 'file'
+                        'type' => is_dir($sourceDir . DIRECTORY_SEPARATOR . $item) ? 'directory' : 'file'
                     ];
                 }
             }
@@ -265,12 +263,11 @@ class generateConfig
         return $matches;
     }
     
-
     private function backupAndReplaceItem(string $directory, string $item, string $sourceBasePath, string $destinationBasePath, string $backupBasePath): void
     {
-        $source = $sourceBasePath . '/' . $directory . '/' . $item;
-        $destination = $destinationBasePath . '/' . $directory . '/' . $item;
-        $backup = $backupBasePath . '/' . $directory . '/' . $item;
+        $source = $sourceBasePath . DIRECTORY_SEPARATOR . $directory . DIRECTORY_SEPARATOR . $item;
+        $destination = $destinationBasePath . DIRECTORY_SEPARATOR . $directory . DIRECTORY_SEPARATOR . $item;
+        $backup = $backupBasePath . DIRECTORY_SEPARATOR . $directory . DIRECTORY_SEPARATOR . $item;
     
         // Sauvegarde
         if (file_exists($destination)) {
@@ -307,8 +304,8 @@ class generateConfig
                 continue;
             }
     
-            $src = $source . '/' . $item;
-            $dst = $destination . '/' . $item;
+            $src = $source . DIRECTORY_SEPARATOR . $item;
+            $dst = $destination . DIRECTORY_SEPARATOR . $item;
     
             if (is_dir($src)) {
                 $this->recursiveCopy($src, $dst);
@@ -332,7 +329,7 @@ class generateConfig
                 if ($item === '.' || $item === '..') {
                     continue;
                 }
-                $this->deleteRecursively($path . '/' . $item);
+                $this->deleteRecursively($path . DIRECTORY_SEPARATOR . $item);
             }
             rmdir($path);
         }
