@@ -31,9 +31,9 @@ class modelConfig
         - setDirectory.php: true
     
     controllers:
-        controllers:
+        controllerMap:
         - routesConfig.py: true
-        Controllers:
+        controllers:
         - apiController.php: true
         render: true
         switchers: true

@@ -51,22 +51,102 @@ class generateConfig
 
     private function installComponents(){
         
-        $getDataClass = $this->readYamlFile();
+        $yamlFileContent = $this->readYamlFile();
 
-        // Get update
-        $getDataClass->isUpdateTypeEnabled('all');
+        // Évaluation préalable des flags
+        $allUpdate = $yamlFileContent->isUpdateTypeEnabled('all');
+        $specificUpdate = $yamlFileContent->isUpdateTypeEnabled('specific');
+        $newComponentUpdate = $yamlFileContent->isUpdateTypeEnabled('new');
 
+        // Vérification de conflit logique
+        if ($allUpdate && $specificUpdate) {
+            throw new \LogicException("Conflit dans le fichier YAML : 'all' et 'specific' ne peuvent pas être activés ensemble.");
+        }        
+
+        // Traitement des mises à jour générales ou spécifiques
+        $generalOrSpecificUpdate = match (true) {
+            $allUpdate => $this->generalUpdate($yamlFileContent),
+            $specificUpdate => $this->specificUpdate($yamlFileContent),
+            default => '⚠️ Aucune mise à jour générale ou spécifique détectée.',
+        };
+
+        echo $generalOrSpecificUpdate . PHP_EOL;
+
+        // Traitement des nouvelles composantes
+        $newComponentsUpdate = match (true) {
+            $newComponentUpdate => $this->newsComponentsUpdate($yamlFileContent),
+            default => '⚠️ Aucune mise à jour de nouvelles composantes demandée.',
+        };
+
+        echo $newComponentsUpdate . PHP_EOL;
+    }
+
+    private function generalUpdate($yamlFileContent){
+
+
+        $rootPath = getcwd();
+        $vendorPackagePath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
+
+        $correspondances = $this->checkDirectoryCorrespondence($rootPath, $vendorPackagePath);
+
+        if (!empty($correspondances)) {
+            foreach ($correspondances as $match) {
+                echo "Correspondance trouvée dans '{$match['directory']}': {$match['item']} ({$match['type']})" . PHP_EOL;
+            }
+        } else {
+            echo "Aucune correspondance trouvée entre les dossiers." . PHP_EOL;
+        }
+
+        die;
+    }
+
+    private function specificUpdate($yamlFileContent){
+        
         // Get section
-        $getDataClass->getUpdateTargets('specific');
+        $yamlFileContent->getUpdateTargets('config');
 
         // Get
-        $getDataClass->shouldUpdate('config', 'config.ini');
+        $yamlFileContent->shouldUpdate('config', 'Config.ini');
 
     }
 
-    private function getAppPath(){
-        $appDir = 'bin/';
-        $rootDir = getcwd();
+    private function newsComponentsUpdate($yamlFileContent){
+        
+    }
+
+
+    private function checkDirectoryCorrespondence(string $rootPath, string $targetPath): array
+    {
+        $directoriesToCheck = ['bin', 'public/layouts'];
+        $matches = [];
+
+        foreach ($directoriesToCheck as $dirName) {
+            $sourceDir = rtrim($rootPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dirName;
+            $targetDir = rtrim($targetPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $dirName;
+
+            if (!is_dir($sourceDir) || !is_dir($targetDir)) {
+                continue;
+            }
+
+            $sourceItems = scandir($sourceDir);
+            $targetItems = scandir($targetDir);
+
+            // Élimine les éléments système . et ..
+            $sourceItems = array_diff($sourceItems, ['.', '..']);
+            $targetItems = array_diff($targetItems, ['.', '..']);
+
+            foreach ($sourceItems as $item) {
+                if (in_array($item, $targetItems)) {
+                    $matches[] = [
+                        'directory' => $dirName,
+                        'item' => $item,
+                        'type' => is_dir($sourceDir . '/' . $item) ? 'directory' : 'file'
+                    ];
+                }
+            }
+        }
+
+        return $matches;
     }
 
 }
