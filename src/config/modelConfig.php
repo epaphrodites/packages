@@ -24,7 +24,6 @@ class ModelConfig
 
     # Specific folders/files to be updated
     update_targets:
-
         bin:
             config:
                 Config.ini: true
@@ -71,9 +70,9 @@ class ModelConfig
 
         public:
             layouts:
-            display: true
-            template: true
-            widgets: true
+                display: true
+                template: true
+                widgets: true
 
     YAML;
     

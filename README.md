@@ -66,21 +66,63 @@ The ``synchrone-config.yaml`` file allows you to control update behavior:
 
 ```bash
 # Update Types Configuration
-update_types:
-  all: false          # Update all components
-  specific: true      # Update only specified components
-  new: false          # Update only new components
+update:
+  type:
+    all: false          # Update all components
+    specific: true      # Update only specified components
+    new: false          # Update only new components
 
 # Specific Component Configuration (when specific: true)
-targets:
-  bin:
-    scripts: true
-    utilities:
-      helper: true
-      validator: true
-  public:
-    layouts:
-      header: true
-      footer: false
-    assets: false
+update_targets:
+    bin:
+        config: true
+            Config.ini: true
+            Config.json: true
+            email.ini: true
+            setDirectory.php: true
+
+        controllers:
+            controllerMap:
+                routesConfig.py: true
+            controllers:
+                apiControllers.py: true
+
+        database:
+            config: true
+            gearShift: true
+            query: true
+            seeders: true    
+
+        epaphrodites:
+            api: true
+            auth: true
+            cbuild: true
+            chatBot: true
+            Console: true
+            constant: true    
+
+    public:
+        layouts:
+            display: true
+            template: true
+            widgets: true
 ```
+
+### Update Types Explained
+- 🌐 All Updates (all: true)
+
+Updates all available components
+Replaces existing files with latest versions
+Creates automatic backups of modified files
+
+- 🎯 Specific Updates (specific: true)
+
+Updates only the components you specify in the targets section
+Gives you granular control over what gets updated
+Perfect for selective updates without affecting other components
+
+- 🆕 New Component Updates (new: true)
+
+Adds only new components that don't exist in your project
+Preserves all existing files
+Ideal for adding new features without modifying current setup
