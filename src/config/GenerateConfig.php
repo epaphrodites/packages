@@ -117,7 +117,7 @@ class GenerateConfig
         
         $this->mergeDirectoriesFromVendor($vendorPath, $rootPath, $backupPath, self::STANDARD_DIRECTORIES);
         
-        return '✅ General update completed successfully.';
+        return "\033[32m✅ General update done.\033[0m";
     }
 
     /**
@@ -256,19 +256,60 @@ class GenerateConfig
 
         if (!empty($correspondences)) {
             foreach ($correspondences as $match) {
-                echo "Match found in '{$match['directory']}': {$match['item']} ({$match['type']})" . PHP_EOL;
+                echo "\033[36mMatch found in '{$match['directory']}': {$match['item']} ({$match['type']})\033[0m" . PHP_EOL;
 
-                $this->backupAndReplaceItem(
-                    $match['directory'],
-                    $match['item'],
-                    $newComponentPath,
-                    $rootPath,
-                    $backupPath
-                );
+                $source = $newComponentPath . DIRECTORY_SEPARATOR . $match['directory'] . DIRECTORY_SEPARATOR . $match['item'];
+                $destination = $rootPath . DIRECTORY_SEPARATOR . $match['directory'] . DIRECTORY_SEPARATOR . $match['item'];
+                $backup = $backupPath . DIRECTORY_SEPARATOR . date('Y-m-d_His') . DIRECTORY_SEPARATOR . $match['directory'] . DIRECTORY_SEPARATOR . $match['item'];
+
+                // Backup existing item if it exists
+                if (file_exists($destination)) {
+                    $this->ensureDirectoryExists(dirname($backup));
+                    if (is_dir($destination)) {
+                        $this->copyRecursively($destination, $backup);
+                        echo "\033[33mBacked up directory: $backup\033[0m" . PHP_EOL;
+                    } else {
+                        copy($destination, $backup);
+                        echo "\033[33mBacked up file: $backup\033[0m" . PHP_EOL;
+                    }
+                }
+
+                // Copy new item (file or directory)
+                if (is_dir($source)) {
+                    $this->copyRecursively($source, $destination);
+                    echo "\033[32mDirectory copied: $destination\033[0m" . PHP_EOL;
+                } elseif (is_file($source)) {
+                    $this->ensureDirectoryExists(dirname($destination));
+                    copy($source, $destination);
+                    echo "\033[32mFile copied: $destination\033[0m" . PHP_EOL;
+                }
             }
-            return '✅ New components update completed successfully.';
+
+            // Copy new files that don't exist in destination
+            $newIterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($newComponentPath, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+            foreach ($newIterator as $newItem) {
+                $relativePath = substr($newItem->getPathname(), strlen($newComponentPath . DIRECTORY_SEPARATOR));
+                $destPath = $rootPath . DIRECTORY_SEPARATOR . $relativePath;
+                $backupPath = $backupPath . DIRECTORY_SEPARATOR . date('Y-m-d_His') . DIRECTORY_SEPARATOR . $relativePath;
+
+                if (!file_exists($destPath)) {
+                    if ($newItem->isDir()) {
+                        $this->ensureDirectoryExists($destPath);
+                        echo "\033[32mNew directory created: $destPath\033[0m" . PHP_EOL;
+                    } else {
+                        $this->ensureDirectoryExists(dirname($destPath));
+                        copy($newItem->getPathname(), $destPath);
+                        echo "\033[32mNew file added: $destPath\033[0m" . PHP_EOL;
+                    }
+                }
+            }
+
+            return "\033[32m✅ New components updated successfully.\033[0m";
         } else {
-            return '⚠️  No matching directories found for new components.';
+            return "\033[33m⚠️ No matching directories found.\033[0m";
         }
     }
 
@@ -396,6 +437,21 @@ class GenerateConfig
                     } elseif (file_exists($subDirPath)) {
                         $this->replaceFileWithBackup($subDirPath, $targetPath, "$backupPath/$relativePath", $statistics);
                     } else {
+                        // Add missing files from vendor
+                        $vendorIterator = new RecursiveIteratorIterator(
+                            new RecursiveDirectoryIterator($vendorPath . DIRECTORY_SEPARATOR . $baseDir, RecursiveDirectoryIterator::SKIP_DOTS),
+                            RecursiveIteratorIterator::SELF_FIRST
+                        );
+                        foreach ($vendorIterator as $vendorItem) {
+                            if ($vendorItem->isFile()) {
+                                $relativeVendorPath = substr($vendorItem->getPathname(), strlen($vendorPath . DIRECTORY_SEPARATOR));
+                                $targetFilePath = $rootPath . DIRECTORY_SEPARATOR . $relativeVendorPath;
+                                $backupFilePath = $backupPath . DIRECTORY_SEPARATOR . $relativeVendorPath;
+                                if (!file_exists($targetFilePath)) {
+                                    $this->replaceFileWithBackup($vendorItem->getPathname(), $targetFilePath, $backupFilePath, $statistics);
+                                }
+                            }
+                        }
                         $statistics['not_found']++;
                     }
                 }
@@ -403,7 +459,7 @@ class GenerateConfig
         }
         
         $this->displayUpdateSummary($statistics);
-        return '✅ Specific update completed.';
+        return "\033[32m✅ Specific update completed.\033[0m";
     }
 
     /**
@@ -532,30 +588,30 @@ class GenerateConfig
      */
     private function displayUpdateSummary(array $statistics): void
     {
-        echo "🎉 Update completed:" . PHP_EOL;
+        echo "\033[32m🎉 Update completed:\033[0m" . PHP_EOL;
         
         if ($statistics['added'] > 0) {
-            echo "🆕 {$statistics['added']} file(s) added" . PHP_EOL;
+            echo "\033[32m🆕 {$statistics['added']} file(s) added\033[0m" . PHP_EOL;
         }
         
         if ($statistics['replaced'] > 0) {
-            echo "📝 {$statistics['replaced']} file(s) replaced" . PHP_EOL;
+            echo "\033[34m📝 {$statistics['replaced']} file(s) replaced\033[0m" . PHP_EOL;
         }
         
         if ($statistics['backed_up'] > 0) {
-            echo "🗂 {$statistics['backed_up']} file(s) backed up" . PHP_EOL;
+            echo "\033[33m🗂 {$statistics['backed_up']} file(s) backed up\033[0m" . PHP_EOL;
         }
         
         if ($statistics['not_found'] > 0) {
-            echo "❌ {$statistics['not_found']} file(s) not found" . PHP_EOL;
+            echo "\033[31m❌ {$statistics['not_found']} file(s) not found\033[0m" . PHP_EOL;
         }
         
         if ($statistics['failed'] > 0) {
-            echo "⚠️ {$statistics['failed']} operation(s) failed" . PHP_EOL;
+            echo "\033[31m⚠️ {$statistics['failed']} operation(s) failed\033[0m" . PHP_EOL;
         }
         
         if (array_sum($statistics) === 0) {
-            echo "⚠️ No updates performed." . PHP_EOL;
+            echo "\033[33m⚠️ No updates performed.\033[0m" . PHP_EOL;
         }
     }
 
