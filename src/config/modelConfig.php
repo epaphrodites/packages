@@ -119,7 +119,7 @@ public static function createDefaultSynchronePhp($filePath) {
     }    
 
     function requireComponent($option) {
-        Epaphrodites\Packages\config\GenerateConfig::lunch($option);
+        Epaphrodites\Packages\GenerateConfig::lunch($option);
     }
 
 PHP;
