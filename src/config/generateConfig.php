@@ -192,17 +192,6 @@ class generateConfig
             }
         }
     }
-    
-    private function specificUpdate($yamlFileContent){
-
-        $rootPath = getcwd();
-        $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources';
-        $vendorPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
-        $getSpecific = $yamlFileContent->getUpdateTargets();
-
-
-    }
-
 
     private function newsComponentsUpdate()
     {
@@ -269,7 +258,6 @@ class generateConfig
         $destination = $destinationBasePath . DIRECTORY_SEPARATOR . $directory . DIRECTORY_SEPARATOR . $item;
         $backup = $backupBasePath . DIRECTORY_SEPARATOR . $directory . DIRECTORY_SEPARATOR . $item;
     
-        // Sauvegarde
         if (file_exists($destination)) {
             if (is_dir($destination)) {
                 $this->recursiveCopy($destination, $backup);
@@ -335,5 +323,63 @@ class generateConfig
         }
     }
     
+    private function specificUpdate($yamlFileContent)
+{
+    $rootPath = getcwd();
+    $vendorPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
+
+    $getSpecific = $yamlFileContent->getUpdateTargets();
+
+    $directoriesToCheck = ['bin', 'public'];
+
+    foreach ($directoriesToCheck as $baseDir) {
+        if (!isset($getSpecific[$baseDir])) {
+            continue;
+        }
+
+        $baseStructure = $getSpecific[$baseDir];
+
+        foreach ($baseStructure as $subDir => $content) {
+            $subDirPath = "$vendorPath/$baseDir/$subDir";
+            $relativePath = "$baseDir/$subDir";
+
+            // Si l’entrée est un tableau (sous-structure), on explore
+            if (is_array($content)) {
+                $this->testMatches($content, $subDirPath, $relativePath);
+            } elseif ($content === true) {
+                // Fichier ou dossier directement sous bin/
+                if (file_exists($subDirPath)) {
+                    echo "✅ Correspondance trouvée : $relativePath" . PHP_EOL;
+                } else {
+                    echo "❌ Introuvable : $relativePath" . PHP_EOL;
+                }
+            }
+        }
+    }
+
+    echo "🎉 Test de correspondance terminé." . PHP_EOL;
+    die;
+}
+
+
+private function testMatches(array $structure, string $targetBase, string $relativeBase): void
+{
+    foreach ($structure as $name => $value) {
+        $targetPath = $targetBase . '/' . $name;
+        $relativePath = $relativeBase . '/' . $name;
+
+        if (is_array($value)) {
+            $this->testMatches($value, $targetPath, $relativePath);
+        } elseif ($value === true) {
+            if (file_exists($targetPath)) {
+                echo "✅ Correspondance trouvée : $relativePath" . PHP_EOL;
+            } else {
+                echo "❌ Introuvable : $relativePath" . PHP_EOL;
+            }
+        }
+    }
+}
+
+
 
 }
