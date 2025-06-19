@@ -1,7 +1,7 @@
 {
   "name": "epaphrodites/packages",
   "type": "library",
-  "description": "Package, the flexible, fast, and secure template language for PHP",
+  "description": "The Epaphrodites Package Manager is a powerful configuration management tool designed to handle dynamic updates for your Epaphrodites projects. It provides seamless component installation, updates, and synchronization with automatic backup functionality to ensure your project remains stable during updates.",
   "keywords": ["templating"],
   "homepage": "https://epaphrodites.org",
   "license": "MIT",
@@ -23,8 +23,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Epaphrodites": "src/",
-      "Epaphrodites\\Packages": "src/config"
+      "Epaphrodites\\": "src/",
+      "Epaphrodites\\Packages\\": "src/config"
     }
   }
 }
