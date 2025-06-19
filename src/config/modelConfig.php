@@ -24,51 +24,50 @@ class modelConfig
 
     # Specific folders/files to be updated
     update_targets:
+
         bin:
             config:
-            Config.ini: true
-            Config.json: true
-            email.ini: true
-            setDirectory.php: true
+                Config.ini: true
+                Config.json: true
+                email.ini: true
+                setDirectory.php: true
 
             controllers:
-            controllerMap:
-                routesConfig.py: true
+                controllerMap:
+                    routesConfig.py: true
                 controllers:
-                apiController.php: true
-                render: true
-                switchers: true
+                    apiControllers.py: true
 
             database:
-            config: true
-            gearShift: true
-            query: true
-            seeders: true
+                config: true
+                gearShift: true
+                query: true
+                seeders: true
 
             epaphrodites:
-            api: true
-            auth: true
-            cbuild: true
-            chatBot: true
-            Console: true
-            constant: true
-            Contracts: true
-            CsrfToken: true
-            danho: true
-            env: true
-            epaphAI: true
-            EpaphMozart: true
-            ErrorsExceptions: true
-            ExcelFiles: true
-            Extension: true
-            heredia: true
-            Kernel: true
-            path: true
-            python: true
-            QRCodes: true
-            shares: true
-            translate: true
-            yedidiah: true
+                api: true
+                auth: true
+                cbuild: true
+                chatBot: true
+                Console: true
+                constant: true
+                Contracts: true
+                CsrfToken: true
+                danho: true
+                env: true
+                epaphAI: true
+                EpaphMozart: true
+                ErrorsExceptions: true
+                ExcelFiles: true
+                Extension: true
+                heredia: true
+                Kernel: true
+                path: true
+                python: true
+                QRCodes: true
+                shares: true
+                translate: true
+                yedidiah: true
 
         public:
             layouts:

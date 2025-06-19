@@ -327,59 +327,171 @@ class generateConfig
 {
     $rootPath = getcwd();
     $vendorPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/init-ressources';
-
+    
+    // 🕒 Dossier de sauvegarde avec date/heure
+    $dateSuffix = date('Y-m-d_H-i');
+    $backupPath = $rootPath . '/vendor/epaphrodites/packages/src/epaphrodites/old-ressources/' . $dateSuffix;
+    
     $getSpecific = $yamlFileContent->getUpdateTargets();
-
     $directoriesToCheck = ['bin', 'public'];
-
+    
+    $stats = ['added' => 0, 'replaced' => 0, 'backed_up' => 0, 'failed' => 0, 'not_found' => 0];
+    
     foreach ($directoriesToCheck as $baseDir) {
         if (!isset($getSpecific[$baseDir])) {
             continue;
         }
-
+        
         $baseStructure = $getSpecific[$baseDir];
-
         foreach ($baseStructure as $subDir => $content) {
-            $subDirPath = "$vendorPath/$baseDir/$subDir";
-            $relativePath = "$baseDir/$subDir";
-
-            // Si l’entrée est un tableau (sous-structure), on explore
+            $subDirPath = $vendorPath . DIRECTORY_SEPARATOR . $baseDir . DIRECTORY_SEPARATOR . $subDir;
+            $relativePath = $baseDir . DIRECTORY_SEPARATOR . $subDir;
+            $mainRoutePath = $rootPath . DIRECTORY_SEPARATOR . $relativePath;
+            
             if (is_array($content)) {
-                $this->testMatches($content, $subDirPath, $relativePath);
+                $this->processDirectoryStructure($content, $subDirPath, $relativePath, $vendorPath, $rootPath, $backupPath, $stats);
             } elseif ($content === true) {
-                // Fichier ou dossier directement sous bin/
-                if (file_exists($subDirPath)) {
-                    echo "✅ Correspondance trouvée : $relativePath" . PHP_EOL;
+                if (is_dir($subDirPath)) {
+                    // Traitement d'un dossier complet
+                    $this->copyDirectory($subDirPath, $mainRoutePath, "$backupPath/$relativePath", $stats);
+                } elseif (file_exists($subDirPath)) {
+                    // Traitement d'un fichier simple
+                    $this->replaceFile($subDirPath, $mainRoutePath, "$backupPath/$relativePath", $stats);
                 } else {
-                    echo "❌ Introuvable : $relativePath" . PHP_EOL;
+                    $stats['not_found']++;
                 }
             }
         }
     }
-
-    echo "🎉 Test de correspondance terminé." . PHP_EOL;
-    die;
+    
+    $this->displaySummary($stats);
 }
 
-
-private function testMatches(array $structure, string $targetBase, string $relativeBase): void
+private function processDirectoryStructure(array $structure, string $targetBase, string $relativeBase, string $vendorPath, string $rootPath, string $backupPath, array &$stats): void
 {
     foreach ($structure as $name => $value) {
-        $targetPath = $targetBase . '/' . $name;
-        $relativePath = $relativeBase . '/' . $name;
-
+        $targetPath = $targetBase . DIRECTORY_SEPARATOR . $name;
+        $relativePath = $relativeBase . DIRECTORY_SEPARATOR . $name;
+        $destinationPath = $rootPath . DIRECTORY_SEPARATOR . $relativePath;
+        $backupFilePath = $backupPath . DIRECTORY_SEPARATOR . $relativePath;
+        
         if (is_array($value)) {
-            $this->testMatches($value, $targetPath, $relativePath);
+            $this->processDirectoryStructure($value, $targetPath, $relativePath, $vendorPath, $rootPath, $backupPath, $stats);
         } elseif ($value === true) {
-            if (file_exists($targetPath)) {
-                echo "✅ Correspondance trouvée : $relativePath" . PHP_EOL;
+            if (is_dir($targetPath)) {
+                $this->copyDirectory($targetPath, $destinationPath, $backupFilePath, $stats);
+            } elseif (file_exists($targetPath)) {
+                $this->replaceFile($targetPath, $destinationPath, $backupFilePath, $stats);
             } else {
-                echo "❌ Introuvable : $relativePath" . PHP_EOL;
+                $stats['not_found']++;
             }
         }
     }
 }
 
+private function copyDirectory(string $sourceDir, string $destinationDir, string $backupDir, array &$stats): void
+{
+    if (!is_dir($sourceDir)) {
+        $stats['failed']++;
+        return;
+    }
+    
+    // Créer les dossiers de destination et de sauvegarde si nécessaire
+    if (!is_dir(dirname($destinationDir))) {
+        mkdir(dirname($destinationDir), 0775, true);
+    }
+    
+    if (!is_dir(dirname($backupDir))) {
+        mkdir(dirname($backupDir), 0775, true);
+    }
+    
+    // Parcourir récursivement le dossier source
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($sourceDir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    
+    foreach ($iterator as $item) {
+        $sourcePath = $item->getPathname();
+        $relativePath = substr($sourcePath, strlen($sourceDir) + 1);
+        $destPath = $destinationDir . DIRECTORY_SEPARATOR . $relativePath;
+        $backupPath = $backupDir . DIRECTORY_SEPARATOR . $relativePath;
+        
+        if ($item->isDir()) {
+            if (!is_dir($destPath)) {
+                mkdir($destPath, 0775, true);
+            }
+        } else {
+            $this->replaceFile($sourcePath, $destPath, $backupPath, $stats);
+        }
+    }
+}
 
+private function replaceFile(string $sourcePath, string $destinationPath, string $backupPath, array &$stats): void
+{
+    $destinationDir = dirname($destinationPath);
+    $backupDir = dirname($backupPath);
+    
+    // Créer les dossiers nécessaires
+    if (!is_dir($destinationDir)) {
+        mkdir($destinationDir, 0775, true);
+    }
+    
+    if (!file_exists($destinationPath)) {
+        // ➕ Nouveau fichier
+        if (copy($sourcePath, $destinationPath)) {
+            $stats['added']++;
+        } else {
+            $stats['failed']++;
+        }
+        return;
+    }
+    
+    // 🔐 Sauvegarde avant remplacement
+    if (!is_dir($backupDir)) {
+        mkdir($backupDir, 0775, true);
+    }
+    
+    if (copy($destinationPath, $backupPath)) {
+        $stats['backed_up']++;
+        
+        if (copy($sourcePath, $destinationPath)) {
+            $stats['replaced']++;
+        } else {
+            $stats['failed']++;
+        }
+    } else {
+        $stats['failed']++;
+    }
+}
 
+private function displaySummary(array $stats): void
+{
+    echo "🎉 Mise à jour terminée :" . PHP_EOL;
+    
+    if ($stats['added'] > 0) {
+        echo "🆕 {$stats['added']} fichier(s) ajouté(s)" . PHP_EOL;
+    }
+    
+    if ($stats['replaced'] > 0) {
+        echo "📝 {$stats['replaced']} fichier(s) remplacé(s)" . PHP_EOL;
+    }
+    
+    if ($stats['backed_up'] > 0) {
+        echo "🗂 {$stats['backed_up']} fichier(s) sauvegardé(s)" . PHP_EOL;
+    }
+    
+    if ($stats['not_found'] > 0) {
+        echo "❌ {$stats['not_found']} fichier(s) introuvable(s)" . PHP_EOL;
+    }
+    
+    if ($stats['failed'] > 0) {
+        echo "⚠️ {$stats['failed']} échec(s)" . PHP_EOL;
+    }
+    
+    if (array_sum($stats) === 0) {
+        echo "⚠️ Aucune mise à jour effectuée." . PHP_EOL;
+    }
+}
+        
 }
