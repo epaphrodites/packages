@@ -7,7 +7,7 @@
  * for the Epaphrodites framework. No save or modification functionality.
  */
 
-namespace Epaphrodites\Packages\config;
+namespace Epaphrodites\Packages;
 
 use Exception;
 
@@ -48,7 +48,7 @@ class EpaphroditesConfigReader
         $result = [];
         $stack = [&$result];
         $levels = [0];
-        $listContext = [false]; // To track if we're in a list context
+        $listContext = [false];
 
         foreach ($lines as $line) {
             $line = rtrim($line);
@@ -72,35 +72,29 @@ class EpaphroditesConfigReader
             $line = trim($line);
             $level = intval($indent / 2);
 
-            // Adjust stack according to indentation level
             while (count($levels) > $level + 1) {
                 array_pop($stack);
                 array_pop($levels);
                 array_pop($listContext);
             }
 
-            // Process list elements
             if (strpos($line, '- ') === 0) {
                 $item = trim(substr($line, 2));
                 $current = &$stack[count($stack) - 1];
                 
-                // If list element contains a key-value pair
                 if (strpos($item, ':') !== false) {
                     list($key, $value) = $this->splitKeyValue($item);
                     $value = $this->convertValue($value);
                     
-                    // Ensure current is an array
                     if (!is_array($current)) {
                         $current = [];
                     }
                     
-                    // Add key-value directly (not as list element)
                     $current[$key] = $value;
                     
-                    // Mark that we're in a list context with key-value
                     $listContext[count($listContext) - 1] = true;
                 } else {
-                    // Simple list element
+
                     if (!is_array($current)) {
                         $current = [];
                     }
@@ -109,7 +103,6 @@ class EpaphroditesConfigReader
                 continue;
             }
 
-            // Process normal key-value pairs
             if (strpos($line, ':') !== false) {
                 list($key, $value) = $this->splitKeyValue($line);
                 $value = trim($value);
@@ -117,13 +110,13 @@ class EpaphroditesConfigReader
                 $current = &$stack[count($stack) - 1];
                 
                 if (empty($value)) {
-                    // Key without value, create new level
+               
                     $current[$key] = [];
                     $stack[] = &$current[$key];
                     $levels[] = $level + 1;
                     $listContext[] = false;
                 } else {
-                    // Key with value
+             
                     $current[$key] = $this->convertValue($value);
                 }
             }

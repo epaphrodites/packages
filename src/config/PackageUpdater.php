@@ -1,6 +1,6 @@
 <?php
 
-namespace Epaphrodites\Packages\config;
+namespace Epaphrodites\Packages;
 
 /**
  * Class for managing epaphrodites/packages package updates

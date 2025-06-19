@@ -1,8 +1,8 @@
 <?php
 
-namespace Epaphrodites\Packages\config;
+namespace Epaphrodites\Packages;
 
-class modelConfig
+class ModelConfig
 {
     
     public static function createDefaultUpdateYaml($filePath) {
@@ -87,9 +87,6 @@ public static function createDefaultSynchronePhp($filePath) {
 # Supports MacOS, Ubuntu, Debian, and other Linux distributions.
 # Author: Y'srael Aimé N'dri
 # License: MIT
-# This script automates the process of generating, installing, and configuring
-# The script is designed to be run from the command line and requires
-# appropriate permissions to install extensions and restart services.
 # ============================================================================= #
 
 /*
@@ -123,7 +120,7 @@ public static function createDefaultSynchronePhp($filePath) {
     }    
 
     function requireComponent($option) {
-        Epaphrodites\Packages\config\generateConfig::lunch($option);
+        Epaphrodites\Packages\config\GenerateConfig::lunch($option);
     }
 
 PHP;

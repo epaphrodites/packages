@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require "config/modelConfig.php";
+require "config/ModelConfig.php";
 
-use Epaphrodites\Packages\config\modelConfig;
+use Epaphrodites\Packages\ModelConfig;
 
 /**
  * AutoInstaller - Automatically installs and configures package files
@@ -12,7 +12,7 @@ use Epaphrodites\Packages\config\modelConfig;
  * This class handles the installation of synchronization configuration files
  * and scripts for the packages/epaphrodites package.
  */
-class AutoInstaller extends modelConfig
+class AutoInstaller extends ModelConfig
 {
     private const CONSOLE_COLORS = [
         'reset' => "\033[0m",
@@ -67,8 +67,8 @@ class AutoInstaller extends modelConfig
             throw new Exception("Root directory is not writable: {$this->rootDir}");
         }
 
-        if (!class_exists('Epaphrodites\Packages\config\modelConfig')) {
-            throw new Exception("Required class modelConfig not found");
+        if (!class_exists('Epaphrodites\Packages\ModelConfig')) {
+            throw new Exception("Required class ModelConfig not found");
         }
     }
 
@@ -80,12 +80,12 @@ class AutoInstaller extends modelConfig
         $filesToInstall = [
             [
                 'filename' => 'synchrone-config.yaml',
-                'callback' => fn() => modelConfig::createDefaultUpdateYaml($this->rootDir . '/synchrone-config.yaml'),
+                'callback' => fn() => ModelConfig::createDefaultUpdateYaml($this->rootDir . '/synchrone-config.yaml'),
                 'description' => 'update configuration file'
             ],
             [
                 'filename' => 'synchrone',
-                'callback' => fn() => modelConfig::createDefaultSynchronePhp($this->rootDir . '/synchrone'),
+                'callback' => fn() => ModelConfig::createDefaultSynchronePhp($this->rootDir . '/synchrone'),
                 'description' => 'synchronization script'
             ]
         ];

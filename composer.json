@@ -23,7 +23,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Epaphrodites\\Packages\\": "src/"
+      "Epaphrodites": "src/",
+      "Epaphrodites\\Packages": "src/config"
     }
   }
 }
