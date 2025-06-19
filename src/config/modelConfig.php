@@ -13,9 +13,9 @@ class ModelConfig
     package: "packages/epaphrodites"
 
     # Available update modes
-    # all: Update all files
-    # specific: Update only specific files
-    # new: Update only new files
+    # all : Update all files
+    # specific : Update only specific files
+    # new : Update only new files
     update:
         type:
             all: true

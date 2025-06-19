@@ -61,7 +61,9 @@ class GenerateConfig
      */
     private function getLatestComponentsFromPackagist(): array
     {
-        $updater = new PackageUpdater(true);
+        $rootDir = getcwd();
+        $composerFile = $rootDir . '/composer.json';
+        $updater = new PackageUpdater(true, $composerFile); 
         return $updater->updateEpaphroditesPackage();
     }
 

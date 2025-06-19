@@ -24,7 +24,7 @@ The Epaphrodites Package Manager is a powerful configuration management tool des
 
 ### Prerequisites
 
-- PHP 8.0+
+- PHP 8.2+
 - Composer installed globally
 - An existing **Epaphrodites** project
 
