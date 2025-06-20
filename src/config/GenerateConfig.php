@@ -20,6 +20,21 @@ class GenerateConfig
     use Constant;
 
     /**
+     * Format message with dots and status icon
+     * 
+     * @param string $message Message to format
+     * @param bool $success Success status (true for ✅, false for ❌)
+     * @param int $maxLength Maximum length before dots (default 50)
+     * @return string Formatted message
+     */
+    private function formatMessage(string $message, bool $success = true, int $maxLength = 50): string
+    {
+        $icon = $success ? '✅' : '❌';
+        $dots = str_repeat('.', max(1, $maxLength - strlen($message)));
+        return $message . $dots . $icon;
+    }
+
+    /**
      * Read YAML configuration file
      * 
      * @return EpaphroditesConfigReader
@@ -117,7 +132,7 @@ class GenerateConfig
         
         $this->mergeDirectoriesFromVendor($vendorPath, $rootPath, $backupPath, self::STANDARD_DIRECTORIES);
         
-        return "\033[32m✅ General update done.\033[0m";
+        return "\033[32m" . $this->formatMessage("General update completed") . "\033[0m";
     }
 
     /**
@@ -186,7 +201,7 @@ class GenerateConfig
             if (is_dir($vendorItemPath)) {
                 if (!is_dir($targetPath)) {
                     mkdir($targetPath, self::PERMISSIONS, true);
-                    $logMessages[] = "📁 Directory created: $dirName/$relativePath";
+                    $logMessages[] = $this->formatMessage("Directory created in $dirName");
                     $operationCount++;
                 }
                 continue;
@@ -196,19 +211,26 @@ class GenerateConfig
                 $this->ensureDirectoryExists(dirname($targetPath));
 
                 if (file_exists($targetPath)) {
-                    // Backup existing file before replacement
                     $this->ensureDirectoryExists(dirname($backupTarget));
-                    copy($targetPath, $backupTarget);
-                    $logMessages[] = "🕓 Backed up: $dirName/$relativePath → old-ressources/" . basename($backupPath) . "/$dirName/$relativePath";
-                    
-                    copy($vendorItemPath, $targetPath);
-                    $logMessages[] = "🔄 Replaced: $dirName/$relativePath";
-                    $operationCount++;
+                    if (copy($targetPath, $backupTarget)) {
+                        $logMessages[] = $this->formatMessage("File backed up in $dirName");
+                        
+                        if (copy($vendorItemPath, $targetPath)) {
+                            $logMessages[] = $this->formatMessage("File replaced in $dirName");
+                            $operationCount++;
+                        } else {
+                            $logMessages[] = $this->formatMessage("Failed to replace file in $dirName", false);
+                        }
+                    } else {
+                        $logMessages[] = $this->formatMessage("Failed to backup file in $dirName", false);
+                    }
                 } else {
-                    // Add new file
-                    copy($vendorItemPath, $targetPath);
-                    $logMessages[] = "➕ Added: $dirName/$relativePath";
-                    $operationCount++;
+                    if (copy($vendorItemPath, $targetPath)) {
+                        $logMessages[] = $this->formatMessage("New file added to $dirName");
+                        $operationCount++;
+                    } else {
+                        $logMessages[] = $this->formatMessage("Failed to add file to $dirName", false);
+                    }
                 }
             }
         }
@@ -225,19 +247,23 @@ class GenerateConfig
     private function displayOperationResults(array $logMessages, int $operationCount, string $backupPath): void
     {
         if ($operationCount > 0) {
-            echo PHP_EOL . "📦 Actions performed:" . PHP_EOL;
+            echo PHP_EOL . "📦 Operations performed:" . PHP_EOL;
             foreach ($logMessages as $message) {
                 echo $message . PHP_EOL;
             }
-            echo PHP_EOL . "✅ Total: $operationCount files/directories added or replaced" . PHP_EOL;
+            echo PHP_EOL . $this->formatMessage("Total: $operationCount files/directories processed") . PHP_EOL;
         } else {
-            echo "🔍 No changes made: no files found in vendor directory." . PHP_EOL;
+            echo $this->formatMessage("No changes made - no files found in vendor", false) . PHP_EOL;
         }
 
         // Save log file
         if (!empty($logMessages)) {
             $this->ensureDirectoryExists($backupPath);
-            file_put_contents($backupPath . DIRECTORY_SEPARATOR . 'operation.log', implode(PHP_EOL, $logMessages));
+            if (file_put_contents($backupPath . DIRECTORY_SEPARATOR . 'operation.log', implode(PHP_EOL, $logMessages))) {
+                echo $this->formatMessage("Operation log saved") . PHP_EOL;
+            } else {
+                echo $this->formatMessage("Failed to save operation log", false) . PHP_EOL;
+            }
         }
     }
 
@@ -256,7 +282,7 @@ class GenerateConfig
 
         if (!empty($correspondences)) {
             foreach ($correspondences as $match) {
-                echo "\033[36mMatch found in '{$match['directory']}': {$match['item']} ({$match['type']})\033[0m" . PHP_EOL;
+                echo "\033[36m" . $this->formatMessage("Processing {$match['type']} in {$match['directory']}") . "\033[0m" . PHP_EOL;
 
                 $source = $newComponentPath . DIRECTORY_SEPARATOR . $match['directory'] . DIRECTORY_SEPARATOR . $match['item'];
                 $destination = $rootPath . DIRECTORY_SEPARATOR . $match['directory'] . DIRECTORY_SEPARATOR . $match['item'];
@@ -267,21 +293,27 @@ class GenerateConfig
                     $this->ensureDirectoryExists(dirname($backup));
                     if (is_dir($destination)) {
                         $this->copyRecursively($destination, $backup);
-                        echo "\033[33mBacked up directory: $backup\033[0m" . PHP_EOL;
+                        echo "\033[33m" . $this->formatMessage("Directory backed up") . "\033[0m" . PHP_EOL;
                     } else {
-                        copy($destination, $backup);
-                        echo "\033[33mBacked up file: $backup\033[0m" . PHP_EOL;
+                        if (copy($destination, $backup)) {
+                            echo "\033[33m" . $this->formatMessage("File backed up") . "\033[0m" . PHP_EOL;
+                        } else {
+                            echo "\033[33m" . $this->formatMessage("Failed to backup file", false) . "\033[0m" . PHP_EOL;
+                        }
                     }
                 }
 
                 // Copy new item (file or directory)
                 if (is_dir($source)) {
                     $this->copyRecursively($source, $destination);
-                    echo "\033[32mDirectory copied: $destination\033[0m" . PHP_EOL;
+                    echo "\033[32m" . $this->formatMessage("Directory copied successfully") . "\033[0m" . PHP_EOL;
                 } elseif (is_file($source)) {
                     $this->ensureDirectoryExists(dirname($destination));
-                    copy($source, $destination);
-                    echo "\033[32mFile copied: $destination\033[0m" . PHP_EOL;
+                    if (copy($source, $destination)) {
+                        echo "\033[32m" . $this->formatMessage("File copied successfully") . "\033[0m" . PHP_EOL;
+                    } else {
+                        echo "\033[32m" . $this->formatMessage("Failed to copy file", false) . "\033[0m" . PHP_EOL;
+                    }
                 }
             }
 
@@ -293,23 +325,25 @@ class GenerateConfig
             foreach ($newIterator as $newItem) {
                 $relativePath = substr($newItem->getPathname(), strlen($newComponentPath . DIRECTORY_SEPARATOR));
                 $destPath = $rootPath . DIRECTORY_SEPARATOR . $relativePath;
-                $backupPath = $backupPath . DIRECTORY_SEPARATOR . date('Y-m-d_His') . DIRECTORY_SEPARATOR . $relativePath;
 
                 if (!file_exists($destPath)) {
                     if ($newItem->isDir()) {
                         $this->ensureDirectoryExists($destPath);
-                        echo "\033[32mNew directory created: $destPath\033[0m" . PHP_EOL;
+                        echo "\033[32m" . $this->formatMessage("New directory created") . "\033[0m" . PHP_EOL;
                     } else {
                         $this->ensureDirectoryExists(dirname($destPath));
-                        copy($newItem->getPathname(), $destPath);
-                        echo "\033[32mNew file added: $destPath\033[0m" . PHP_EOL;
+                        if (copy($newItem->getPathname(), $destPath)) {
+                            echo "\033[32m" . $this->formatMessage("New file added") . "\033[0m" . PHP_EOL;
+                        } else {
+                            echo "\033[32m" . $this->formatMessage("Failed to add new file", false) . "\033[0m" . PHP_EOL;
+                        }
                     }
                 }
             }
 
-            return "\033[32m✅ New components updated successfully.\033[0m";
+            return "\033[32m" . $this->formatMessage("New components updated successfully") . "\033[0m";
         } else {
-            return "\033[33m⚠️ No matching directories found.\033[0m";
+            return "\033[33m" . $this->formatMessage("No matching directories found", false) . "\033[0m";
         }
     }
 
@@ -376,20 +410,27 @@ class GenerateConfig
             
             if (is_dir($destination)) {
                 $this->copyRecursively($destination, $backup);
+                echo $this->formatMessage("Directory backed up") . PHP_EOL;
             } else {
-                copy($destination, $backup);
+                if (copy($destination, $backup)) {
+                    echo $this->formatMessage("File backed up") . PHP_EOL;
+                } else {
+                    echo $this->formatMessage("Failed to backup file", false) . PHP_EOL;
+                }
             }
-            echo "Backed up: $backup" . PHP_EOL;
         }
 
         // Replace with new item
         if (is_dir($source)) {
             $this->deleteRecursively($destination);
             $this->copyRecursively($source, $destination);
-            echo "Directory replaced: $destination" . PHP_EOL;
+            echo $this->formatMessage("Directory replaced successfully") . PHP_EOL;
         } elseif (is_file($source)) {
-            copy($source, $destination);
-            echo "File replaced: $destination" . PHP_EOL;
+            if (copy($source, $destination)) {
+                echo $this->formatMessage("File replaced successfully") . PHP_EOL;
+            } else {
+                echo $this->formatMessage("Failed to replace file", false) . PHP_EOL;
+            }
         }
     }
 
@@ -459,7 +500,7 @@ class GenerateConfig
         }
         
         $this->displayUpdateSummary($statistics);
-        return "\033[32m✅ Specific update completed.\033[0m";
+        return "\033[32m" . $this->formatMessage("Specific update completed") . "\033[0m";
     }
 
     /**
@@ -581,37 +622,37 @@ class GenerateConfig
     }
 
     /**
-     * Display update summary
+     * Display update summary with formatted messages
      * 
      * @param array $statistics Operation statistics
      * @return void
      */
     private function displayUpdateSummary(array $statistics): void
     {
-        echo "\033[32m🎉 Update completed:\033[0m" . PHP_EOL;
+        echo "\033[32m🎉 Update Summary:\033[0m" . PHP_EOL;
         
         if ($statistics['added'] > 0) {
-            echo "\033[32m🆕 {$statistics['added']} file(s) added\033[0m" . PHP_EOL;
+            echo "\033[32m" . $this->formatMessage("{$statistics['added']} file(s) added") . "\033[0m" . PHP_EOL;
         }
         
         if ($statistics['replaced'] > 0) {
-            echo "\033[34m📝 {$statistics['replaced']} file(s) replaced\033[0m" . PHP_EOL;
+            echo "\033[34m" . $this->formatMessage("{$statistics['replaced']} file(s) replaced") . "\033[0m" . PHP_EOL;
         }
         
         if ($statistics['backed_up'] > 0) {
-            echo "\033[33m🗂 {$statistics['backed_up']} file(s) backed up\033[0m" . PHP_EOL;
+            echo "\033[33m" . $this->formatMessage("{$statistics['backed_up']} file(s) backed up") . "\033[0m" . PHP_EOL;
         }
         
         if ($statistics['not_found'] > 0) {
-            echo "\033[31m❌ {$statistics['not_found']} file(s) not found\033[0m" . PHP_EOL;
+            echo "\033[31m" . $this->formatMessage("{$statistics['not_found']} file(s) not found", false) . "\033[0m" . PHP_EOL;
         }
         
         if ($statistics['failed'] > 0) {
-            echo "\033[31m⚠️ {$statistics['failed']} operation(s) failed\033[0m" . PHP_EOL;
+            echo "\033[31m" . $this->formatMessage("{$statistics['failed']} operation(s) failed", false) . "\033[0m" . PHP_EOL;
         }
         
         if (array_sum($statistics) === 0) {
-            echo "\033[33m⚠️ No updates performed.\033[0m" . PHP_EOL;
+            echo "\033[33m" . $this->formatMessage("No updates performed", false) . "\033[0m" . PHP_EOL;
         }
     }
 
