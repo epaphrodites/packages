@@ -1,3 +1,11 @@
 synchrone
 synchrone-config.yaml
+src/config/epaphrodites/init-ressources/bin/config/.env
+src/config/epaphrodites/init-ressources/bin/controllers/controllerMap/controllerMap.php
+src/config/epaphrodites/init-ressources/bin/controllers/controllers/api.php
+src/config/epaphrodites/init-ressources/bin/controllers/controllers/chats.php
+src/config/epaphrodites/init-ressources/bin/controllers/controllers/setting.php
+src/config/epaphrodites/init-ressources/bin/controllers/controllers/main.php
+src/config/epaphrodites/init-ressources/bin/controllers/controllers/users.php
+src/config/epaphrodites/init-ressources/bin/controllers/controllers/dashbord.php
 **/__pycache__/
