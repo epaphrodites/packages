@@ -39,9 +39,7 @@ class ModelConfig
 
             database:
                 config: true
-                gearShift: true
                 query: true
-                seeders: true
 
             epaphrodites:
                 api: true
