@@ -14,7 +14,7 @@ class modelForEnvManagers extends settingForEnvManagers
     private const INI_FILE = 'Config.ini';
     private const ENV_FILE = '.env';
     private const VALID_SECTION_PATTERN = '/^(\d+)_CONFIGURATION$/';
-    private const REQUIRED_KEYS = ['HOST', 'USER', 'PASSWORD'];
+    private const REQUIRED_KEYS = ['HOST', 'USER', 'PASSWORD', 'DRIVER'];
 
     /**
      * Executes the console command to generate or load the .env file
@@ -201,6 +201,7 @@ class modelForEnvManagers extends settingForEnvManagers
 
             $index = $matches[1];
             $envContent .= sprintf("# Database configuration %s\n", $index);
+            $envContent .= sprintf("%sDB_DRIVER=%s\n", $index, $this->sanitizeValue($settings['DRIVER'] ?? ''));
             $envContent .= sprintf("%sDB_PORT=%s\n", $index, $this->sanitizeValue($settings['PORT'] ?? ''));
             $envContent .= sprintf("%sDB_USER=%s\n", $index, $this->sanitizeValue($settings['USER'] ?? ''));
             $envContent .= sprintf("%sDB_PASSWORD=%s\n", $index, $this->sanitizeValue($settings['PASSWORD'] ?? ''));

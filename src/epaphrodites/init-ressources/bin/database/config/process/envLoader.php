@@ -11,7 +11,7 @@ final class envLoader
     private const ENV_FILE = '.env';
     private const ENV_FILE_PERMISSIONS = 0600;
     private const SECTION_PATTERN = '/^(\d+)_CONFIGURATION$/';
-    private const REQUIRED_KEYS = ['PORT', 'USER', 'PASSWORD', 'SOCKET_PATH'];
+    private const REQUIRED_KEYS = ['PORT', 'USER', 'PASSWORD', 'SOCKET_PATH', 'DRIVER'];
 
     private static bool $isLoaded = false;
 
@@ -110,12 +110,14 @@ final class envLoader
                 $warnings[] = "DB_SOCKET_PATH may be invalid in section [$section]: {$settings['DB_SOCKET_PATH']}";
             }
 
+            $envDirver = self::sanitize($settings['DRIVER'] ?? '');
             $envPort = self::sanitize($settings['PORT'] ?? '');
             $envUsers = self::sanitize($settings['USER'] ?? '');
             $envPassword = self::sanitize($settings['PASSWORD'] ?? '');
             $envSocket = self::sanitize($settings['DB_SOCKET_PATH'] ?? '');
 
             $envContent .= "# DB Configuration $index" . PHP_EOL;
+            $envContent .= "{$index}DB_DRIVER=" . ($envDirver !== '' ? $envDirver : '""') . PHP_EOL;
             $envContent .= "{$index}DB_PORT=" . ($envPort !== '' ? $envPort : '""') . PHP_EOL;
             $envContent .= "{$index}DB_USER=" . ($envUsers !== '' ? $envUsers : '""') . PHP_EOL;
             $envContent .= "{$index}DB_PASSWORD=" . ($envPassword !== '' ? $envPassword : '""') . PHP_EOL;

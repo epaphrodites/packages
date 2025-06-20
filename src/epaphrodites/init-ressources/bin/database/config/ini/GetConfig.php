@@ -247,7 +247,7 @@ class GetConfig extends errors
         int $db
     ): string{
 
-        $drivers = static::get($db, key: 'DRIVER');
+        $drivers = static::loadEnv($db, 'DRIVER');
 
         return $drivers;
     }
