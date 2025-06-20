@@ -98,7 +98,14 @@ class GenerateConfig
 
         // Check for logical conflicts
         if ($allUpdate && $specificUpdate) {
-            throw new LogicException("Configuration conflict: 'all' and 'specific' cannot be enabled simultaneously.");
+            echo "\033[95m┌─────────────────────────────────────┐\033[0m" . PHP_EOL;
+            echo "\033[95m│  🤯 WHOOPS! THAT'S NOT GONNA WORK   │\033[0m" . PHP_EOL;
+            echo "\033[95m└─────────────────────────────────────┘\033[0m" . PHP_EOL;
+            echo "\033[93m🎯 Pick a lane, buddy! Either:\033[0m" . PHP_EOL;
+            echo "\033[92m   → Use 'all' to update everything\033[0m" . PHP_EOL;
+            echo "\033[92m   → Use 'specific' for targeted updates\033[0m" . PHP_EOL;
+            echo "\033[91m   ✗ But not both at the same time!\033[0m" . PHP_EOL;
+            exit(1);
         }
 
         // Process general or specific updates
